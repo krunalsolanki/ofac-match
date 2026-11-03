@@ -2,6 +2,13 @@
 
 All notable changes are listed here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [0.1.2] - 2026-11-03
+
+### Added
+
+- Citation metadata (`CITATION.cff`, `.zenodo.json`) so each release is archived on Zenodo with a DOI.
+- Privacy policy, Claude Code plugin and marketplace, Dockerfile and Glama metadata.
+
 ## [0.1.1] - 2026-11-03
 
 ### Added

@@ -3,7 +3,7 @@
   "manifest_version": "0.4",
   "name": "ofac-match",
   "display_name": "OfacMatch – OFAC sanctions screening",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Screen names against the OFAC SDN sanctions list, with an explanation of every match.",
   "long_description": "Screens person, company, vessel and aircraft names against the U.S. Treasury OFAC SDN list and explains each potential match: which listed name or alias it hit, how each part of the name paired up, and whether the year of birth or country conflicts with the listed record.\n\nRuns locally. The names you screen never leave your computer; the only download is the public SDN list from OFAC, cached for 24 hours. No API key or account.\n\nResults are potential matches only. A person must review each one before any decision. Not legal advice.",
   "author": {

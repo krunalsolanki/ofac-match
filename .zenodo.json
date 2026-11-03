@@ -1,0 +1,13 @@
+{
+  "title": "OfacMatch: explainable OFAC sanctions name screening",
+  "upload_type": "software",
+  "description": "<p>OfacMatch screens person, company, vessel and aircraft names against the U.S. Treasury OFAC Specially Designated Nationals (SDN) list and explains every potential match, combining whole-name and name-part comparison (Jaro-Winkler similarity and Soundex) on OFAC's 0-100 scale. It flags date-of-birth and country conflicts, runs locally, and is evaluated on the real SDN list: at a threshold of 85 it finds 99.8% of 4,255 realistic variations of listed names.</p><p>Available as a .NET library (NuGet: OfacMatch), an MCP server for AI assistants (NuGet: OfacMatch.Mcp) and a browser-based demonstration at https://krunalsolanki.github.io/ofac-match/.</p>",
+  "creators": [
+    { "name": "Solanki, Krunal", "orcid": "0009-0008-2350-8196" }
+  ],
+  "license": "apache-2.0",
+  "keywords": ["OFAC", "sanctions screening", "name matching", "Jaro-Winkler", "Soundex", "explainable AI", "compliance", "AML", "KYC", "MCP"],
+  "related_identifiers": [
+    { "identifier": "https://github.com/krunalsolanki/ofac-match", "relation": "isSupplementTo", "scheme": "url" }
+  ]
+}

@@ -12,7 +12,7 @@
     <PackageType>McpServer</PackageType>
 
     <PackageId>OfacMatch.Mcp</PackageId>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <Authors>Krunal Solanki</Authors>
     <Description>MCP server for explainable OFAC sanctions name screening. Lets AI assistants screen names against the official SDN list, look up entries and explain scores, running locally with no API key.</Description>
     <PackageTags>mcp;mcp-server;ofac;sdn;sanctions;screening;aml;kyc;compliance</PackageTags>
