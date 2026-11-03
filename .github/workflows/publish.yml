@@ -1,0 +1,55 @@
+name: Publish
+
+# Runs when a GitHub release is published, e.g. tag v0.1.1.
+# Logs in to nuget.org with Trusted Publishing, so no API key is stored in the repo.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write # lets NuGet/login get a short-lived key for this run
+
+jobs:
+  publish:
+    runs-on: windows-latest # .NET Framework 4.8 tests only run on Windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Stop before publishing if the release tag and the package version disagree.
+      - name: Check version matches tag
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          for project in src/OfacMatch/OfacMatch.csproj src/OfacMatch.Mcp/OfacMatch.Mcp.csproj; do
+            version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' "$project")
+            if [ "$version" != "$tag" ]; then
+              echo "::error::$project has version $version but the release tag is $GITHUB_REF_NAME"
+              exit 1
+            fi
+          done
+
+      - name: Build
+        run: dotnet build --configuration Release
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build
+
+      - name: Pack
+        run: |
+          dotnet pack src/OfacMatch --configuration Release --no-build --output artifacts
+          dotnet pack src/OfacMatch.Mcp --configuration Release --no-build --output artifacts
+
+      - name: Log in to nuget.org
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }} # your nuget.org username, not your email
+
+      - name: Push to nuget.org
+        shell: bash
+        run: dotnet nuget push "artifacts/*.nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
