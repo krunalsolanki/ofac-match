@@ -2,6 +2,8 @@
 
 OFAC sanctions name screening for .NET that tells you *why* a name matched.
 
+![OfacMatch screening a misspelled name, flagging a birth-year conflict and clearing a common name](https://raw.githubusercontent.com/krunalsolanki/ofac-match/main/docs/images/demo.gif)
+
 ## Why I built this
 
 I spent ten years building title and mortgage systems at First American, including OFAC screening that stops a loan from going to someone on the Treasury's sanctions list. Name matching sounds simple until a compliance analyst asks why a name was flagged, or why a misspelled one wasn't.
