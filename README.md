@@ -1,5 +1,7 @@
 # OfacMatch
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23926803.svg)](https://doi.org/10.5281/zenodo.23926803)
+
 OFAC sanctions name screening for .NET that tells you *why* a name matched.
 
 ![OfacMatch screening a misspelled name, flagging a birth-year conflict and clearing a common name](https://raw.githubusercontent.com/krunalsolanki/ofac-match/main/docs/images/demo.gif)
@@ -150,6 +152,14 @@ Things I'd like to work on, roughly in order:
 - [ ] An ASP.NET Core sample and a `dotnet tool` package
 
 If you'd like to help with any of these, or have a case that scores badly, open an issue. [CONTRIBUTING.md](https://github.com/krunalsolanki/ofac-match/blob/main/CONTRIBUTING.md) has the details.
+
+## Citation
+
+If you use OfacMatch in research or a write-up, please cite it:
+
+> Solanki, K. *OfacMatch: explainable OFAC sanctions name screening* (software). Zenodo. https://doi.org/10.5281/zenodo.23926803
+
+The DOI above always points to the latest version; each release also has its own DOI on [Zenodo](https://doi.org/10.5281/zenodo.23926803). GitHub's **Cite this repository** button gives the same details in other formats.
 
 ## Credits
 
