@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+artifacts/
+.git/
+.github/
+.vs/
+samples/OfacMatch.Web/wwwroot/data/
+**/ofac-data/
