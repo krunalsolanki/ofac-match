@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/OfacMatch.Cli/OfacMatch.Cli.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/OfacMatch.Mcp/OfacMatch.Mcp.csproj" />
+    <Project Path="src/OfacMatch/OfacMatch.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/OfacMatch.Tests/OfacMatch.Tests.csproj" />
+  </Folder>
+  <Folder Name="/eval/">
+    <Project Path="eval/OfacMatch.Evaluation/OfacMatch.Evaluation.csproj" />
+  </Folder>
+</Solution>
