@@ -29,6 +29,7 @@ public enum NameKind
 /// <summary>A date that may be known only to the year or month, as OFAC often records dates of birth.</summary>
 public sealed class PartialDate
 {
+    /// <summary>Creates a partial date.</summary>
     public PartialDate(int year, int? month = null, int? day = null)
     {
         Year = year;
@@ -36,8 +37,13 @@ public sealed class PartialDate
         Day = day;
     }
 
+    /// <summary>The year.</summary>
     public int Year { get; }
+
+    /// <summary>The month (1-12), if known.</summary>
     public int? Month { get; }
+
+    /// <summary>The day of the month, if known.</summary>
     public int? Day { get; }
 
     /// <inheritdoc />
@@ -50,6 +56,7 @@ public sealed class PartialDate
 /// <summary>An alternate name (aka, fka or nka) from ALT.CSV.</summary>
 public sealed class SanctionsAlias
 {
+    /// <summary>Creates an alias.</summary>
     public SanctionsAlias(NameKind kind, string name, string? remarks = null)
     {
         Kind = kind;
@@ -57,14 +64,20 @@ public sealed class SanctionsAlias
         Remarks = remarks;
     }
 
+    /// <summary>Whether this is an aka, fka or nka.</summary>
     public NameKind Kind { get; }
+
+    /// <summary>The alternate name as published.</summary>
     public string Name { get; }
+
+    /// <summary>OFAC's remarks on the alias, if any.</summary>
     public string? Remarks { get; }
 }
 
 /// <summary>An address from ADD.CSV.</summary>
 public sealed class SanctionsAddress
 {
+    /// <summary>Creates an address.</summary>
     public SanctionsAddress(string? street, string? cityStateZip, string? country)
     {
         Street = street;
@@ -72,14 +85,20 @@ public sealed class SanctionsAddress
         Country = country;
     }
 
+    /// <summary>Street address.</summary>
     public string? Street { get; }
+
+    /// <summary>City, state or province, and postal code.</summary>
     public string? CityStateZip { get; }
+
+    /// <summary>Country.</summary>
     public string? Country { get; }
 }
 
 /// <summary>One entry on the OFAC Specially Designated Nationals (SDN) list.</summary>
 public sealed class SanctionsEntry
 {
+    /// <summary>Creates an entry.</summary>
     public SanctionsEntry(
         int id,
         string name,
@@ -97,12 +116,25 @@ public sealed class SanctionsEntry
         DatesOfBirth = RemarksParser.ParseDatesOfBirth(remarks);
     }
 
+    /// <summary>OFAC's unique entry number (ent_num).</summary>
     public int Id { get; }
+
+    /// <summary>The primary name as published, e.g. "DOE, John".</summary>
     public string Name { get; }
+
+    /// <summary>Individual, entity, vessel or aircraft.</summary>
     public EntryType Type { get; }
+
+    /// <summary>Sanctions program tags, e.g. "SDGT" or "IRAN".</summary>
     public IReadOnlyList<string> Programs { get; }
+
+    /// <summary>Title, for individuals.</summary>
     public string? Title { get; }
+
+    /// <summary>Free-text remarks (dates of birth, identifiers, linked entities).</summary>
     public string? Remarks { get; }
+
+    /// <summary>Dates of birth parsed from <see cref="Remarks"/>.</summary>
     public IReadOnlyList<PartialDate> DatesOfBirth { get; }
 
     /// <summary>Alternate names.</summary>
