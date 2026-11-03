@@ -1,0 +1,49 @@
+name: MCP Registry
+
+# Lists the MCP server in the official MCP Registry (registry.modelcontextprotocol.io).
+# Runs after a successful Publish, or by hand from the Actions tab ("Run workflow").
+# Logs in with GitHub OIDC, so no token is stored in the repo.
+on:
+  workflow_run:
+    workflows: [Publish]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  register:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # After a release, use the exact commit that was published.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      # The registry checks that the package exists on NuGet, and new packages
+      # take a while to clear NuGet's validation. Wait up to an hour.
+      - name: Wait for the package on NuGet
+        run: |
+          version=$(jq -r '.version' src/OfacMatch.Mcp/.mcp/server.json)
+          for attempt in $(seq 1 60); do
+            if curl -fs https://api.nuget.org/v3-flatcontainer/ofacmatch.mcp/index.json | jq -e --arg v "$version" '.versions | index($v)' > /dev/null; then
+              echo "OfacMatch.Mcp $version is on NuGet."
+              exit 0
+            fi
+            echo "Waiting for OfacMatch.Mcp $version on NuGet ($attempt/60)..."
+            sleep 60
+          done
+          echo "::error::OfacMatch.Mcp $version did not appear on NuGet within an hour."
+          exit 1
+
+      - name: Install mcp-publisher
+        run: curl -fsSL https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz | tar xz mcp-publisher
+
+      - name: Log in to the MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server.json
+        run: ./mcp-publisher publish src/OfacMatch.Mcp/.mcp/server.json
