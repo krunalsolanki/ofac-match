@@ -6,7 +6,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <PackageId>OfacMatch</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Krunal Solanki</Authors>
     <Description>Explainable OFAC sanctions name screening for .NET. Loads the official SDN list, scores names on OFAC's 0-100 scale using Jaro-Winkler and Soundex, and explains every match. Zero dependencies; runs on .NET Framework 4.7.2+ (tested on 4.8) and modern .NET.</Description>
     <PackageTags>ofac;sdn;sanctions;screening;aml;kyc;compliance;fuzzy-matching;jaro-winkler;soundex</PackageTags>
