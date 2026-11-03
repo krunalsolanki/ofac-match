@@ -14,9 +14,9 @@ jobs:
   publish:
     runs-on: windows-latest # .NET Framework 4.8 tests only run on Windows
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
 
@@ -52,4 +52,8 @@ jobs:
 
       - name: Push to nuget.org
         shell: bash
-        run: dotnet nuget push "artifacts/*.nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        # Let bash expand the file list; dotnet nuget push doesn't expand "artifacts/*.nupkg" on the Windows runner.
+        run: |
+          for package in artifacts/*.nupkg; do
+            dotnet nuget push "$package" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          done
