@@ -2,6 +2,13 @@
 
 All notable changes are listed here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Try-it web page (`samples/OfacMatch.Web`) that screens names in the browser, published to GitHub Pages with a daily copy of the SDN list.
+- One-click Claude Desktop extensions (`.mcpb`) for Windows and Mac, built and attached to each GitHub release. They are self-contained, so .NET isn't needed.
+
 ## [0.1.0] - Unreleased
 
 ### Added

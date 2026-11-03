@@ -20,7 +20,17 @@ All tools are read-only.
 
 ## Install
 
-Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet), which includes the `dnx` command.
+**Claude Desktop, one click:** download the extension for your computer from the [latest release](https://github.com/krunalsolanki/ofac-match/releases/latest) and double-click it, then choose **Install**.
+
+| Computer | File |
+|---|---|
+| Windows | `ofac-match-windows.mcpb` |
+| Mac with Apple silicon (M1 and later) | `ofac-match-mac-apple-silicon.mcpb` |
+| Mac with Intel | `ofac-match-mac-intel.mcpb` |
+
+The extension includes everything it needs; you don't need .NET. It can optionally use an offline copy of the list (a folder with SDN.CSV, ALT.CSV and ADD.CSV), set in the extension's settings.
+
+**Everything else** runs the NuGet package and requires the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet), which includes the `dnx` command.
 
 **Claude Code**
 

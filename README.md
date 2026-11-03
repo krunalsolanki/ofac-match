@@ -4,6 +4,8 @@ OFAC sanctions name screening for .NET that tells you *why* a name matched.
 
 ![OfacMatch screening a misspelled name, flagging a birth-year conflict and clearing a common name](https://raw.githubusercontent.com/krunalsolanki/ofac-match/main/docs/images/demo.gif)
 
+**[Try it in your browser](https://krunalsolanki.github.io/ofac-match/)**: no install, and the names you type never leave your browser.
+
 ## Why I built this
 
 I spent ten years building title and mortgage systems at First American, including OFAC screening that stops a loan from going to someone on the Treasury's sanctions list. Name matching sounds simple until a compliance analyst asks why a name was flagged, or why a misspelled one wasn't.
@@ -81,6 +83,10 @@ OFAC updates the list often. Reload it at least daily, and screen against the cu
 ### Use it from an AI assistant (MCP server)
 
 `OfacMatch.Mcp` lets Claude, GitHub Copilot and other [MCP](https://modelcontextprotocol.io/) clients screen names, look up SDN entries and explain scores. It runs locally and needs no API key.
+
+**Claude Desktop:** download the extension for your computer from the [latest release](https://github.com/krunalsolanki/ofac-match/releases/latest) (`ofac-match-windows.mcpb` or `ofac-match-mac-*.mcpb`) and double-click it. No .NET or config file needed.
+
+**Claude Code and other clients** (needs the .NET 10 SDK):
 
 ```bash
 claude mcp add ofac-match -- dnx OfacMatch.Mcp --yes
