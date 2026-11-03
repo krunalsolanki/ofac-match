@@ -1,0 +1,56 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/mcpb/main/dist/mcpb-manifest.schema.json",
+  "manifest_version": "0.4",
+  "name": "ofac-match",
+  "display_name": "OfacMatch – OFAC sanctions screening",
+  "version": "0.1.0",
+  "description": "Screen names against the OFAC SDN sanctions list, with an explanation of every match.",
+  "long_description": "Screens person, company, vessel and aircraft names against the U.S. Treasury OFAC SDN list and explains each potential match: which listed name or alias it hit, how each part of the name paired up, and whether the year of birth or country conflicts with the listed record.\n\nRuns locally. The names you screen never leave your computer; the only download is the public SDN list from OFAC, cached for 24 hours. No API key or account.\n\nResults are potential matches only. A person must review each one before any decision. Not legal advice.",
+  "author": {
+    "name": "Krunal Solanki",
+    "url": "https://github.com/krunalsolanki"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/krunalsolanki/ofac-match"
+  },
+  "homepage": "https://github.com/krunalsolanki/ofac-match",
+  "documentation": "https://github.com/krunalsolanki/ofac-match/blob/main/src/OfacMatch.Mcp/README.md",
+  "support": "https://github.com/krunalsolanki/ofac-match/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "binary",
+    "entry_point": "server/OfacMatch.Mcp",
+    "mcp_config": {
+      "command": "${__dirname}/server/OfacMatch.Mcp",
+      "env": {
+        "OFACMATCH_DATA_DIR": "${user_config.data_dir}"
+      },
+      "platform_overrides": {
+        "win32": {
+          "command": "${__dirname}/server/OfacMatch.Mcp.exe"
+        }
+      }
+    }
+  },
+  "tools": [
+    { "name": "screen_name", "description": "Screen one name against the SDN list and explain each potential match." },
+    { "name": "screen_names", "description": "Screen up to 100 names and return the best match for each." },
+    { "name": "get_sanctions_entry", "description": "Show the full published record of an SDN entry." },
+    { "name": "compare_names", "description": "Show how two names score against each other, part by part." },
+    { "name": "get_list_info", "description": "Report which copy of the SDN list is loaded and when it was downloaded." }
+  ],
+  "user_config": {
+    "data_dir": {
+      "type": "directory",
+      "title": "Offline list folder (optional)",
+      "description": "A folder with SDN.CSV, ALT.CSV and ADD.CSV to use instead of downloading from OFAC. Leave empty to download the latest list.",
+      "required": false
+    }
+  },
+  "keywords": ["ofac", "sanctions", "sdn", "screening", "compliance", "aml", "kyc"],
+  "license": "Apache-2.0",
+  "compatibility": {
+    "platforms": ["win32", "darwin"]
+  }
+}
