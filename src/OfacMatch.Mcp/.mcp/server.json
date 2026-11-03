@@ -1,0 +1,46 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
+  "description": "Explainable OFAC sanctions name screening: screen names against the official SDN list, look up entries and explain scores. Runs locally, no API key.",
+  "name": "io.github.krunalsolanki/ofac-match",
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "nuget",
+      "registryBaseUrl": "https://api.nuget.org",
+      "identifier": "OfacMatch.Mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [],
+      "environmentVariables": [
+        {
+          "name": "OFACMATCH_DATA_DIR",
+          "value": "{data_dir}",
+          "variables": {
+            "data_dir": {
+              "description": "Optional. A folder containing SDN.CSV, ALT.CSV and ADD.CSV to use offline. Leave empty to download the current list from OFAC.",
+              "isRequired": false,
+              "isSecret": false
+            }
+          }
+        },
+        {
+          "name": "OFACMATCH_REFRESH_HOURS",
+          "value": "{refresh_hours}",
+          "variables": {
+            "refresh_hours": {
+              "description": "Optional. Hours before the downloaded list is refreshed. Default 24.",
+              "isRequired": false,
+              "isSecret": false
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/krunalsolanki/ofac-match",
+    "source": "github"
+  }
+}

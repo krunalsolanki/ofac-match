@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>OfacMatch.Mcp</RootNamespace>
+
+    <!-- Package as an MCP server that clients start with `dnx OfacMatch.Mcp` -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>ofac-match-mcp</ToolCommandName>
+    <PackageType>McpServer</PackageType>
+
+    <PackageId>OfacMatch.Mcp</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Krunal Solanki</Authors>
+    <Description>MCP server for explainable OFAC sanctions name screening. Lets AI assistants screen names against the official SDN list, look up entries and explain scores, running locally with no API key.</Description>
+    <PackageTags>mcp;mcp-server;ofac;sdn;sanctions;screening;aml;kyc;compliance</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/krunalsolanki/ofac-match</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/krunalsolanki/ofac-match</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include=".mcp\server.json" Pack="true" PackagePath="/.mcp/" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
+    <PackageReference Include="ModelContextProtocol" Version="2.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfacMatch\OfacMatch.csproj" />
+  </ItemGroup>
+
+</Project>
