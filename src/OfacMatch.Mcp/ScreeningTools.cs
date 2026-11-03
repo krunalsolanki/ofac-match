@@ -17,6 +17,8 @@ public sealed class ScreeningTools
 
     private const int MaxBatch = 100;
 
+    private const int MaxResultsLimit = 50;
+
     private readonly SanctionsListProvider _provider;
 
     public ScreeningTools(SanctionsListProvider provider)
@@ -32,13 +34,14 @@ public sealed class ScreeningTools
         [Description("The party's year of birth, if known. Matches whose listed dates of birth differ by more than a year are flagged.")] int? yearOfBirth = null,
         [Description("The party's country, if known. Matches whose listed addresses are all in other countries are flagged.")] string? country = null,
         [Description("Lowest score to return, 0-100. Default 85.")] double minScore = 85,
-        [Description("Maximum number of matches to return. Default 10.")] int maxResults = 10,
+        [Description("Maximum number of matches to return, 1-50. Default 10.")] int maxResults = 10,
         CancellationToken cancellationToken = default)
     {
-        var loaded = await _provider.GetAsync(cancellationToken);
+        // Check the input before loading the list, so a bad call fails fast and never triggers a download.
         var request = BuildRequest(name, type, yearOfBirth, country, minScore, maxResults);
+        var loaded = await _provider.GetAsync(cancellationToken);
         var matches = loaded.Screener.Screen(request).Select(ToDto).ToList();
-        return new ScreeningResult(name, matches.Count, matches, ListInfo(loaded), request.MinScore ?? 85, Notice);
+        return new ScreeningResult(request.Name, matches.Count, matches, ListInfo(loaded), minScore, Notice);
     }
 
     [McpServerTool(Name = "screen_names", Title = "Screen several names", ReadOnly = true, Idempotent = true)]
@@ -48,18 +51,28 @@ public sealed class ScreeningTools
         [Description("Lowest score to count as a potential match, 0-100. Default 85.")] double minScore = 85,
         CancellationToken cancellationToken = default)
     {
+        if (names is null || names.Length == 0)
+        {
+            throw new McpException("Give at least one name to screen.");
+        }
+
         if (names.Length > MaxBatch)
         {
             throw new McpException($"Screen at most {MaxBatch} names per call; got {names.Length}.");
         }
 
+        CheckMinScore(minScore);
+        var requests = names
+            .Select((n, i) => Validated(() => new ScreeningRequest(n) { MinScore = minScore, MaxResults = 25 }, $"names[{i}]"))
+            .ToList();
+
         var loaded = await _provider.GetAsync(cancellationToken);
-        var results = names
-            .Select(n =>
+        var results = requests
+            .Select(request =>
             {
-                var matches = loaded.Screener.Screen(new ScreeningRequest(n) { MinScore = minScore, MaxResults = 25 });
+                var matches = loaded.Screener.Screen(request);
                 var best = matches.FirstOrDefault();
-                return new BatchItem(n, matches.Count, best?.Score, best?.Entry.Id, best?.MatchedName, best?.Entry.Name);
+                return new BatchItem(request.Name, matches.Count, best?.Score, best?.Entry.Id, best?.MatchedName, best?.Entry.Name);
             })
             .ToList();
 
@@ -72,6 +85,11 @@ public sealed class ScreeningTools
         [Description("The SDN entry number (ent_num) shown in screening results.")] int entryId,
         CancellationToken cancellationToken = default)
     {
+        if (entryId <= 0)
+        {
+            throw new McpException($"entryId must be a positive SDN entry number; got {entryId}.");
+        }
+
         var loaded = await _provider.GetAsync(cancellationToken);
         var entry = loaded.List.Entries.FirstOrDefault(e => e.Id == entryId);
         return entry is null ? null : ToDetails(entry);
@@ -84,6 +102,10 @@ public sealed class ScreeningTools
         [Description("The name to compare with, e.g. a listed name or alias.")] string otherName,
         [Description("Treat the names as company names, ignoring legal forms such as LLC or LTD.")] bool companies = false)
     {
+        // ScreeningRequest applies the same rules to both names as screening does.
+        name = Validated(() => new ScreeningRequest(name), nameof(name)).Name;
+        otherName = Validated(() => new ScreeningRequest(otherName), nameof(otherName)).Name;
+
         var score = new NameScorer().Score(
             NameNormalizer.Tokenize(NameNormalizer.ToNaturalOrder(name), companies),
             NameNormalizer.Tokenize(NameNormalizer.ToNaturalOrder(otherName), companies));
@@ -104,22 +126,66 @@ public sealed class ScreeningTools
 
     private static ScreeningRequest BuildRequest(string name, string? type, int? yearOfBirth, string? country, double minScore, int maxResults)
     {
-        var request = new ScreeningRequest(name)
+        CheckMinScore(minScore);
+        if (maxResults < 1 || maxResults > MaxResultsLimit)
         {
-            YearOfBirth = yearOfBirth,
-            Country = country,
-            MinScore = Math.Max(0, Math.Min(100, minScore)),
-            MaxResults = Math.Max(1, Math.Min(50, maxResults)),
-        };
-
-        if (!string.IsNullOrWhiteSpace(type))
-        {
-            request.Type = Enum.TryParse<EntryType>(type.Trim(), ignoreCase: true, out var parsed)
-                ? parsed
-                : throw new McpException($"Unknown type \"{type}\". Use individual, entity, vessel or aircraft.");
+            throw new McpException($"maxResults must be between 1 and {MaxResultsLimit}; got {maxResults}.");
         }
 
+        var request = Validated(() => new ScreeningRequest(name), nameof(name));
+        request.Type = ParseType(type);
+        request.MinScore = minScore;
+        request.MaxResults = maxResults;
+        Validated(() => request.YearOfBirth = yearOfBirth, nameof(yearOfBirth));
+        Validated(() => request.Country = string.IsNullOrWhiteSpace(country) ? null : country!.Trim(), nameof(country));
         return request;
+    }
+
+    private static EntryType? ParseType(string? type)
+    {
+        if (string.IsNullOrWhiteSpace(type))
+        {
+            return null;
+        }
+
+        // Enum.TryParse also accepts numbers such as "7", so compare against the names only.
+        foreach (EntryType value in Enum.GetValues(typeof(EntryType)))
+        {
+            if (string.Equals(value.ToString(), type!.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                return value;
+            }
+        }
+
+        throw new McpException($"Unknown type \"{type}\". Use individual, entity, vessel or aircraft.");
+    }
+
+    private static void CheckMinScore(double minScore)
+    {
+        if (!(minScore >= 0 && minScore <= 100))
+        {
+            throw new McpException($"minScore must be between 0 and 100; got {minScore}.");
+        }
+    }
+
+    /// <summary>Runs a library check and reports its failure to the client as a clear tool error.</summary>
+    private static T Validated<T>(Func<T> create, string parameter)
+    {
+        try
+        {
+            return create();
+        }
+        catch (ArgumentException ex)
+        {
+            // Keep the first line and drop the " (Parameter 'x')" suffix .NET adds; the parameter is named in our own message.
+            var message = ex.Message.Split('\n')[0].Trim();
+            if (ex.ParamName is not null)
+            {
+                message = message.Replace($" (Parameter '{ex.ParamName}')", string.Empty);
+            }
+
+            throw new McpException($"Invalid {parameter}: {message}");
+        }
     }
 
     private static ListDetails ListInfo(SanctionsListProvider.Loaded loaded) =>

@@ -285,21 +285,28 @@ Handle parsing and validation errors gracefully:
 ```csharp
 try
 {
-    var list = await SanctionsList.CreateAsync("invalid_path/sdn.csv");
+    var list = SanctionsList.LoadFromDirectory("ofac-data");
 }
-catch (FileNotFoundException ex)
+catch (Exception ex) when (ex is IOException or InvalidDataException)
 {
-    Console.Error.WriteLine($"List file not found: {ex.Message}");
-}
-catch (Exception ex)
-{
+    // Missing folder or SDN.CSV, or a file with no entries (empty, truncated, or an HTML error page).
+    // Stop here: never treat a list that failed to load as "no matches".
     Console.Error.WriteLine($"Failed to load list: {ex.Message}");
 }
 
-// Screening is safe; invalid input returns empty results
-var matches = screener.Screen(""); // Empty list, no error
-var matches2 = screener.Screen("   "); // Whitespace only, empty results
+// Invalid input throws instead of quietly returning no matches,
+// so a data problem can't look like a clean result.
+try
+{
+    var matches = screener.Screen("   "); // blank or punctuation-only names are rejected
+}
+catch (ArgumentException ex)
+{
+    Console.Error.WriteLine($"Cannot screen this name: {ex.Message}");
+}
 ```
+
+`ScreeningRequest` also rejects names over 500 characters, years of birth outside 1800 to the current year, and scores outside 0–100. See the [reference](reference.md) for every limit.
 
 ## Command-Line Usage
 

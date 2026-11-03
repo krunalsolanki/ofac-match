@@ -14,9 +14,13 @@ All notable changes are listed here. The project follows [Semantic Versioning](h
 - Date-of-birth and country conflict flags, and filtering by entry type.
 - Command-line sample.
 - Evaluation harness (`eval/OfacMatch.Evaluation`) measuring recall over ten kinds of name variation and alert rates on ordinary names, with results in `docs/evaluation.md`.
-- Documentation: scoring walkthrough, API reference, responsible-use notes, benefits and comparison, publishing guide.
+- Documentation: scoring walkthrough, API reference, responsible-use notes, benefits and comparison.
 - `OfacMatch.Mcp`: MCP server with `screen_name`, `screen_names`, `get_sanctions_entry`, `compare_names` and `get_list_info` tools, run with `dnx OfacMatch.Mcp`.
 - Per-request `MinScore` and `MaxResults` on `ScreeningRequest`.
+- Input validation across the public API. Blank, punctuation-only or overlong names, out-of-range scores, result counts, years of birth and scoring options now throw `ArgumentException` instead of failing later or silently returning no matches.
+- Loading SDN data with no entries throws `InvalidDataException`, and `DownloadAsync` saves files only after they load, so a bad download can't replace a good copy or clear every name.
+- The MCP tools reject invalid arguments with a clear message instead of clamping them, and report list-loading failures instead of a generic error.
+- The command-line sample reports missing or invalid option values and unknown options instead of crashing.
 
 ### Changed
 

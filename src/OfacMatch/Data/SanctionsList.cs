@@ -29,12 +29,10 @@ public sealed class SanctionsList
     public DateTimeOffset LoadedAt { get; }
 
     /// <summary>Loads the list from the three legacy flat files. Aliases and addresses are optional.</summary>
+    /// <exception cref="InvalidDataException">The SDN data has no entries, so it is not an SDN file.</exception>
     public static SanctionsList Load(TextReader sdn, TextReader? alt = null, TextReader? add = null)
     {
-        if (sdn is null)
-        {
-            throw new ArgumentNullException(nameof(sdn));
-        }
+        Guard.NotNull(sdn, nameof(sdn));
 
         var entries = new List<SanctionsEntry>();
         var byId = new Dictionary<int, SanctionsEntry>();
@@ -55,6 +53,13 @@ public sealed class SanctionsList
                 Field(row, 11));
             entries.Add(entry);
             byId[id] = entry;
+        }
+
+        // An empty list would clear every name, so treat it as bad data rather than a clean result.
+        // This catches an empty file, a truncated download or an HTML error page saved as SDN.CSV.
+        if (entries.Count == 0)
+        {
+            throw new InvalidDataException("The SDN data contains no entries. Check that it is OFAC's SDN.CSV file.");
         }
 
         if (alt is not null)
@@ -85,8 +90,22 @@ public sealed class SanctionsList
     }
 
     /// <summary>Loads SDN.CSV, and ALT.CSV and ADD.CSV when present, from a folder.</summary>
+    /// <exception cref="ArgumentException"><paramref name="directory"/> is empty.</exception>
+    /// <exception cref="DirectoryNotFoundException">The folder does not exist.</exception>
+    /// <exception cref="FileNotFoundException">The folder has no SDN.CSV.</exception>
     public static SanctionsList LoadFromDirectory(string directory)
     {
+        Guard.NotNull(directory, nameof(directory));
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            throw new ArgumentException("Directory must not be empty.", nameof(directory));
+        }
+
+        if (!Directory.Exists(directory))
+        {
+            throw new DirectoryNotFoundException($"Folder not found: {directory}");
+        }
+
         using var sdn = OpenText(Path.Combine(directory, "SDN.CSV"))
             ?? throw new FileNotFoundException("SDN.CSV not found.", Path.Combine(directory, "SDN.CSV"));
         using var alt = OpenText(Path.Combine(directory, "ALT.CSV"));
@@ -96,22 +115,40 @@ public sealed class SanctionsList
 
     /// <summary>
     /// Downloads SDN.CSV, ALT.CSV and ADD.CSV from OFAC's Sanctions List Service and loads them.
-    /// When <paramref name="saveToDirectory"/> is given, the files are also saved there for offline use.
+    /// When <paramref name="saveToDirectory"/> is given, the files are also saved there for offline use,
+    /// but only after they load successfully, so a bad download never replaces a good copy.
     /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="baseUrl"/> is not an absolute http or https address.</exception>
+    /// <exception cref="InvalidDataException">The downloaded SDN file has no entries.</exception>
     public static async Task<SanctionsList> DownloadAsync(
         HttpClient httpClient,
         string? saveToDirectory = null,
         string baseUrl = DefaultBaseUrl,
         CancellationToken cancellationToken = default)
     {
-        if (httpClient is null)
+        Guard.NotNull(httpClient, nameof(httpClient));
+        Guard.NotNull(baseUrl, nameof(baseUrl));
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri)
+            || (baseUri.Scheme != Uri.UriSchemeHttps && baseUri.Scheme != Uri.UriSchemeHttp))
         {
-            throw new ArgumentNullException(nameof(httpClient));
+            throw new ArgumentException("Base URL must be an absolute http or https address.", nameof(baseUrl));
+        }
+
+        if (saveToDirectory is not null && string.IsNullOrWhiteSpace(saveToDirectory))
+        {
+            throw new ArgumentException("Save directory must not be empty.", nameof(saveToDirectory));
+        }
+
+        if (!baseUrl.EndsWith("/", StringComparison.Ordinal))
+        {
+            baseUrl += "/";
         }
 
         var sdn = await DownloadTextAsync(httpClient, baseUrl + "SDN.CSV", cancellationToken).ConfigureAwait(false);
         var alt = await DownloadTextAsync(httpClient, baseUrl + "ALT.CSV", cancellationToken).ConfigureAwait(false);
         var add = await DownloadTextAsync(httpClient, baseUrl + "ADD.CSV", cancellationToken).ConfigureAwait(false);
+
+        var list = Load(new StringReader(sdn), new StringReader(alt), new StringReader(add));
 
         if (saveToDirectory is not null)
         {
@@ -121,7 +158,7 @@ public sealed class SanctionsList
             File.WriteAllText(Path.Combine(saveToDirectory, "ADD.CSV"), add, Encoding.UTF8);
         }
 
-        return Load(new StringReader(sdn), new StringReader(alt), new StringReader(add));
+        return list;
     }
 
     private static async Task<string> DownloadTextAsync(HttpClient client, string url, CancellationToken ct)

@@ -11,6 +11,7 @@ public static class Soundex
     /// <summary>Returns the four-character Soundex code, e.g. "ROBERT" → "R163", or "" when there are no letters.</summary>
     public static string Encode(string value)
     {
+        Guard.NotNull(value, nameof(value));
         var letters = new StringBuilder();
         foreach (var ch in value)
         {

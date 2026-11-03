@@ -26,6 +26,7 @@ public static class NameNormalizer
     /// <param name="removeLegalSuffixes">Also drop company suffixes such as LLC, LTD or S.A.</param>
     public static IReadOnlyList<string> Tokenize(string name, bool removeLegalSuffixes = false)
     {
+        Guard.NotNull(name, nameof(name));
         var text = FoldToAscii(name);
         var tokens = new List<string>();
         var current = new StringBuilder();
@@ -64,6 +65,7 @@ public static class NameNormalizer
     /// </summary>
     public static string ToNaturalOrder(string name)
     {
+        Guard.NotNull(name, nameof(name));
         var comma = name.IndexOf(',');
         if (comma <= 0 || comma == name.Length - 1)
         {

@@ -87,12 +87,21 @@ public sealed class NameScorer
     }
 
     /// <summary>Compares two already-tokenized names.</summary>
-    public NameScore Score(IReadOnlyList<string> query, IReadOnlyList<string> listed) =>
-        Score(new NameTokens(query), new NameTokens(listed));
+    public NameScore Score(IReadOnlyList<string> query, IReadOnlyList<string> listed)
+    {
+        Guard.NotNull(query, nameof(query));
+        Guard.NotNull(listed, nameof(listed));
+        if (query.Any(string.IsNullOrEmpty) || listed.Any(string.IsNullOrEmpty))
+        {
+            throw new ArgumentException("Name parts must not be null or empty. Use NameNormalizer.Tokenize to split a name.");
+        }
+
+        return Score(new NameTokens(query), new NameTokens(listed));
+    }
 
     /// <summary>Compares two raw names.</summary>
     public NameScore Score(string query, string listed) =>
-        Score(NameNormalizer.Tokenize(query), NameNormalizer.Tokenize(listed));
+        Score(NameNormalizer.Tokenize(Guard.NotNull(query, nameof(query))), NameNormalizer.Tokenize(Guard.NotNull(listed, nameof(listed))));
 
     internal NameScore Score(NameTokens query, NameTokens listed)
     {
@@ -202,18 +211,30 @@ public sealed class NameScorer
 /// <summary>Tuning for <see cref="NameScorer"/>.</summary>
 public sealed class ScoringOptions
 {
+    private double _prefixBoostThreshold = 0.7;
+    private double _coverageWeight = 0.05;
+    private double _minPartScoreForFullName = 0.7;
+
     /// <summary>
-    /// Jaro score above which the Jaro-Winkler prefix bonus applies. Winkler's original
+    /// Jaro score (0-1) above which the Jaro-Winkler prefix bonus applies. Winkler's original
     /// definition uses 0.7 (the default). OpenSanctions reported that OFAC's scores are
     /// reproduced more closely when the bonus is always applied; set 0 to try that.
     /// </summary>
-    public double PrefixBoostThreshold { get; set; } = 0.7;
+    public double PrefixBoostThreshold
+    {
+        get => _prefixBoostThreshold;
+        set => _prefixBoostThreshold = Guard.InRange(value, 0, 1, nameof(value));
+    }
 
     /// <summary>
     /// Share of the name-parts score (0-1) that depends on how much of the listed name the
     /// search covered. Default 0.05: a partial search such as "Ayman Zawahiri" still scores high.
     /// </summary>
-    public double CoverageWeight { get; set; } = 0.05;
+    public double CoverageWeight
+    {
+        get => _coverageWeight;
+        set => _coverageWeight = Guard.InRange(value, 0, 1, nameof(value));
+    }
 
     /// <summary>
     /// When true (default), the whole-name score can raise the result only if every part of the
@@ -223,7 +244,11 @@ public sealed class ScoringOptions
     public bool RequireAllPartsForFullName { get; set; } = true;
 
     /// <summary>Minimum part score (0-1) used by <see cref="RequireAllPartsForFullName"/>. Default 0.7.</summary>
-    public double MinPartScoreForFullName { get; set; } = 0.7;
+    public double MinPartScoreForFullName
+    {
+        get => _minPartScoreForFullName;
+        set => _minPartScoreForFullName = Guard.InRange(value, 0, 1, nameof(value));
+    }
 }
 
 /// <summary>A tokenized name with its Soundex codes, computed once and reused for every comparison.</summary>

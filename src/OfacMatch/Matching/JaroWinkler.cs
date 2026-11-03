@@ -6,6 +6,8 @@ public static class JaroWinkler
     /// <summary>Jaro similarity from 0 (nothing in common) to 1 (identical).</summary>
     public static double Jaro(string a, string b)
     {
+        Guard.NotNull(a, nameof(a));
+        Guard.NotNull(b, nameof(b));
         if (a.Length == 0 && b.Length == 0)
         {
             return 1;
@@ -77,9 +79,13 @@ public static class JaroWinkler
     /// The prefix bonus applies only when the Jaro score exceeds this value. Winkler's original
     /// definition uses 0.7; pass 0 to always apply the bonus.
     /// </param>
-    /// <param name="prefixScale">Weight of each shared prefix character (standard: 0.1).</param>
+    /// <param name="prefixScale">
+    /// Weight of each shared prefix character (standard: 0.1). At most 0.25, so the result stays within 0-1.
+    /// </param>
     public static double Similarity(string a, string b, double boostThreshold = 0.7, double prefixScale = 0.1)
     {
+        Guard.InRange(boostThreshold, 0, 1, nameof(boostThreshold));
+        Guard.InRange(prefixScale, 0, 0.25, nameof(prefixScale));
         var jaro = Jaro(a, b);
         if (jaro <= boostThreshold)
         {

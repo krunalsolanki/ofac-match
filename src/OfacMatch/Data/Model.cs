@@ -29,9 +29,27 @@ public enum NameKind
 /// <summary>A date that may be known only to the year or month, as OFAC often records dates of birth.</summary>
 public sealed class PartialDate
 {
-    /// <summary>Creates a partial date.</summary>
+    /// <summary>Creates a partial date. A day needs a month.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">The year, month or day is out of range.</exception>
+    /// <exception cref="ArgumentException">A day is given without a month.</exception>
     public PartialDate(int year, int? month = null, int? day = null)
     {
+        Guard.InRange(year, 1, 9999, nameof(year));
+        if (month is int m)
+        {
+            Guard.InRange(m, 1, 12, nameof(month));
+        }
+
+        if (day is int d)
+        {
+            if (month is not int monthOfDay)
+            {
+                throw new ArgumentException("A day needs a month.", nameof(day));
+            }
+
+            Guard.InRange(d, 1, DateTime.DaysInMonth(year, monthOfDay), nameof(day));
+        }
+
         Year = year;
         Month = month;
         Day = day;
@@ -60,7 +78,7 @@ public sealed class SanctionsAlias
     public SanctionsAlias(NameKind kind, string name, string? remarks = null)
     {
         Kind = kind;
-        Name = name;
+        Name = Guard.NotNull(name, nameof(name));
         Remarks = remarks;
     }
 
@@ -108,9 +126,9 @@ public sealed class SanctionsEntry
         string? remarks)
     {
         Id = id;
-        Name = name;
+        Name = Guard.NotNull(name, nameof(name));
         Type = type;
-        Programs = programs;
+        Programs = Guard.NotNull(programs, nameof(programs));
         Title = title;
         Remarks = remarks;
         DatesOfBirth = RemarksParser.ParseDatesOfBirth(remarks);

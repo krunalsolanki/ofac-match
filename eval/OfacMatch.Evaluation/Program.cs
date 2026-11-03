@@ -20,12 +20,15 @@ for (var i = 0; i < args.Length; i++)
 {
     switch (args[i])
     {
-        case "--data": data = args[++i]; break;
-        case "--out": output = args[++i]; break;
-        case "--individuals": individuals = int.Parse(args[++i], CultureInfo.InvariantCulture); break;
-        case "--entities": entities = int.Parse(args[++i], CultureInfo.InvariantCulture); break;
-        case "--negatives": negatives = int.Parse(args[++i], CultureInfo.InvariantCulture); break;
-        case "--seed": seed = int.Parse(args[++i], CultureInfo.InvariantCulture); break;
+        case "--data": data = Value(args, ref i); break;
+        case "--out": output = Value(args, ref i); break;
+        case "--individuals": individuals = Count(args, ref i); break;
+        case "--entities": entities = Count(args, ref i); break;
+        case "--negatives": negatives = Count(args, ref i); break;
+        case "--seed": seed = Count(args, ref i); break;
+        default:
+            Console.Error.WriteLine($"Unknown option {args[i]}.");
+            return 1;
     }
 }
 
@@ -172,3 +175,22 @@ static List<SanctionsEntry> Sample(IEnumerable<SanctionsEntry> source, int count
 
 static string Percent(int part, int whole) =>
     whole == 0 ? "–" : (100.0 * part / whole).ToString("0.0", CultureInfo.InvariantCulture) + "%";
+
+static string Value(string[] args, ref int i)
+{
+    if (i + 1 >= args.Length)
+    {
+        throw new ArgumentException($"{args[i]} needs a value.");
+    }
+
+    return args[++i];
+}
+
+static int Count(string[] args, ref int i)
+{
+    var option = args[i];
+    var text = Value(args, ref i);
+    return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) && n >= 0
+        ? n
+        : throw new ArgumentException($"{option} needs a whole number of 0 or more; got \"{text}\".");
+}

@@ -8,11 +8,13 @@ All public types live in two namespaces: `OfacMatch.Data` (the list) and `OfacMa
 |---|---|
 | `DownloadAsync(HttpClient, saveToDirectory?, baseUrl?, cancellationToken?)` | Downloads SDN.CSV, ALT.CSV and ADD.CSV from OFAC's Sanctions List Service. Optionally saves them for offline use. |
 | `LoadFromDirectory(string)` | Loads SDN.CSV, and ALT.CSV and ADD.CSV when present, from a folder. |
-| `Load(TextReader sdn, TextReader? alt, TextReader? add)` | Loads from any readers, e.g. files from your own storage. |
+| `Load(TextReader sdn, TextReader? alt, TextReader? add)` | Loads from any readers, e.g. files from your own storage. Throws `InvalidDataException` if the SDN data has no entries. |
 | `Entries` | All entries (`SanctionsEntry`). |
 | `LoadedAt` | When this copy was loaded. |
 | `DefaultBaseUrl` | `https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/` |
 | `UserAgent` | Sent with downloads when your `HttpClient` has no User-Agent of its own. OFAC's service rejects requests without one (HTTP 403). |
+
+Loading never returns an empty list. An empty file, a truncated download or an HTML error page saved as SDN.CSV throws `InvalidDataException`, because screening against an empty list would clear every name. `DownloadAsync` saves files only after they load, so a bad download never replaces a good copy. It also checks that `baseUrl` is an absolute http or https address.
 
 A loaded list and a `SanctionsScreener` built on it are read-only and safe to share across threads. Build them once and reuse them; reload when OFAC publishes an update.
 
@@ -43,12 +45,14 @@ Results are ordered best first, with at most one match per entry (its best-scori
 
 | Property | Default | Description |
 |---|---|---|
-| `Name` | required | Any order: "John Doe" or "DOE, John". |
+| `Name` | required | Any order: "John Doe" or "DOE, John". Must have at least one letter or digit and at most 500 characters. |
 | `Type` | all | Screen only one entry type, e.g. `EntryType.Individual` for a borrower. |
-| `YearOfBirth` | none | Flags matches whose listed dates of birth are all more than `YearOfBirthTolerance` years away. |
-| `Country` | none | Flags matches whose listed addresses are all in other countries. |
-| `MinScore` | options | Overrides `ScreeningOptions.MinScore` for this request. |
-| `MaxResults` | options | Overrides `ScreeningOptions.MaxResults` for this request. |
+| `YearOfBirth` | none | 1800 to the current year. Flags matches whose listed dates of birth are all more than `YearOfBirthTolerance` years away. |
+| `Country` | none | At most 100 characters. Flags matches whose listed addresses are all in other countries. |
+| `MinScore` | options | 0–100. Overrides `ScreeningOptions.MinScore` for this request. |
+| `MaxResults` | options | At least 1. Overrides `ScreeningOptions.MaxResults` for this request. |
+
+Values outside these limits throw `ArgumentException` (or `ArgumentOutOfRangeException`) when you set them, not later during screening. A blank or punctuation-only name is rejected rather than returning no matches, so a data problem can't look like a clean result.
 
 Flags never remove a match. They give the reviewer facts to clear or escalate it.
 
@@ -56,10 +60,10 @@ Flags never remove a match. They give the reviewer facts to clear or escalate it
 
 | Property | Default | Description |
 |---|---|---|
-| `MinScore` | 85 | Lowest score returned. OFAC recommends no threshold; choose one from your risk assessment and the [evaluation](evaluation.md). |
-| `MaxResults` | 25 | Cap on matches returned. |
-| `YearOfBirthTolerance` | 1 | Years of difference allowed before a date of birth is a conflict. |
-| `Scoring` | see below | Name scoring settings. |
+| `MinScore` | 85 | Lowest score returned, 0–100. OFAC recommends no threshold; choose one from your risk assessment and the [evaluation](evaluation.md). |
+| `MaxResults` | 25 | Cap on matches returned, at least 1. |
+| `YearOfBirthTolerance` | 1 | Years of difference (0–100) allowed before a date of birth is a conflict. |
+| `Scoring` | see below | Name scoring settings. Cannot be null. |
 
 ### `ScoringOptions`
 
@@ -69,6 +73,8 @@ Flags never remove a match. They give the reviewer facts to clear or escalate it
 | `MinPartScoreForFullName` | 0.70 | Part score needed for the guard above. |
 | `CoverageWeight` | 0.05 | Share of the name-parts score that depends on how much of the listed name was covered. |
 | `PrefixBoostThreshold` | 0.70 | Jaro score above which the Jaro-Winkler prefix bonus applies. 0 = always apply it. |
+
+All four numbers must be between 0 and 1.
 
 ### `ScreeningMatch`
 
@@ -87,9 +93,11 @@ Flags never remove a match. They give the reviewer facts to clear or escalate it
 |---|---|
 | `NameNormalizer.Tokenize(name, removeLegalSuffixes)` | The normalization used for screening. |
 | `NameNormalizer.ToNaturalOrder(name)` | `LAST, First` → `First LAST`. |
-| `JaroWinkler.Jaro(a, b)`, `JaroWinkler.Similarity(a, b, boostThreshold, prefixScale)` | String similarity. |
+| `JaroWinkler.Jaro(a, b)`, `JaroWinkler.Similarity(a, b, boostThreshold, prefixScale)` | String similarity. `boostThreshold` must be 0–1 and `prefixScale` 0–0.25, so the result stays within 0–1. |
 | `Soundex.Encode(value)` | American Soundex code. |
 | `NameScorer.Score(query, listed)` | Score two names directly, with full evidence. |
+
+These methods throw `ArgumentNullException` for null input.
 
 ## Command line
 

@@ -16,11 +16,11 @@ It handles the messy parts of real names: accents, `LAST, First` ordering, apost
 
 It has no dependencies, runs inside your own process (names never leave your systems), and works on modern .NET as well as .NET Framework 4.7.2+.
 
-I measured it on the real list rather than guessing: it finds 99.8% of 4,255 realistic misspellings and variations of listed names at a threshold of 85. The [evaluation](docs/evaluation.md) has the details, including where it still misses.
+I measured it on the real list rather than guessing: it finds 99.8% of 4,255 realistic misspellings and variations of listed names at a threshold of 85. The [evaluation](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation.md) has the details, including where it still misses.
 
 This is an early release (0.1). Feedback, bug reports and name variations that score badly are very welcome.
 
-> OfacMatch helps you screen; it doesn't make compliance decisions and isn't legal advice. A score says how alike two names are written, not whether two records are the same person. Pick your threshold from your own risk assessment and have someone review every potential match. More in [Using OfacMatch responsibly](docs/compliance-notes.md).
+> OfacMatch helps you screen; it doesn't make compliance decisions and isn't legal advice. A score says how alike two names are written, not whether two records are the same person. Pick your threshold from your own risk assessment and have someone review every potential match. More in [Using OfacMatch responsibly](https://github.com/krunalsolanki/ofac-match/blob/main/docs/compliance-notes.md).
 
 ## Quick start
 
@@ -53,7 +53,7 @@ Score 95.8 via NameParts against Primary name "AL ZAWAHIRI, Dr. Ayman"
   ZAWAHRI -> ZAWAHIRI: similarity 0.946, sounds alike
 ```
 
-[How scoring works](docs/how-scoring-works.md) walks through this example step by step.
+[How scoring works](https://github.com/krunalsolanki/ofac-match/blob/main/docs/how-scoring-works.md) walks through this example step by step.
 
 ### Screening with more context
 
@@ -84,7 +84,7 @@ OFAC updates the list often. Reload it at least daily, and screen against the cu
 claude mcp add ofac-match -- dnx OfacMatch.Mcp --yes
 ```
 
-Tools: `screen_name`, `screen_names`, `get_sanctions_entry`, `compare_names`, `get_list_info`. See the [MCP server guide](src/OfacMatch.Mcp/README.md) for other clients and settings.
+Tools: `screen_name`, `screen_names`, `get_sanctions_entry`, `compare_names`, `get_list_info`. See the [MCP server guide](https://github.com/krunalsolanki/ofac-match/blob/main/src/OfacMatch.Mcp/README.md) for other clients and settings.
 
 ### Command line
 
@@ -94,7 +94,7 @@ dotnet run --project samples/OfacMatch.Cli -- "Aymen Zawahri" --min 85 --yob 195
 
 ## Results on the real SDN list
 
-From the [evaluation](docs/evaluation.md): 600 listed parties (400 individuals, 200 companies) and 4,255 realistic variations of their names, plus 2,000 ordinary names, against the SDN list published 27 October 2026.
+From the [evaluation](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation.md): 600 listed parties (400 individuals, 200 companies) and 4,255 realistic variations of their names, plus 2,000 ordinary names, against the SDN list published 27 October 2026.
 
 | Threshold | Listed parties found | Ordinary names that alert |
 |---|---:|---:|
@@ -117,12 +117,12 @@ dotnet run -c Release --project eval/OfacMatch.Evaluation -- --data ofac-data --
 
 | Guide | What it covers |
 |---|---|
-| [Why OfacMatch](docs/why-ofacmatch.md) | Benefits and comparison with other options |
-| [How scoring works](docs/how-scoring-works.md) | Every step, with a worked example |
-| [API and configuration reference](docs/reference.md) | Types, options and defaults |
-| [Using OfacMatch responsibly](docs/compliance-notes.md) | Thresholds, review, record keeping, limits |
-| [Evaluation](docs/evaluation.md) | Full results by variation and setting |
-| [MCP server](src/OfacMatch.Mcp/README.md) | Using OfacMatch from AI assistants |
+| [Why OfacMatch](https://github.com/krunalsolanki/ofac-match/blob/main/docs/why-ofacmatch.md) | Benefits and comparison with other options |
+| [How scoring works](https://github.com/krunalsolanki/ofac-match/blob/main/docs/how-scoring-works.md) | Every step, with a worked example |
+| [API and configuration reference](https://github.com/krunalsolanki/ofac-match/blob/main/docs/reference.md) | Types, options and defaults |
+| [Using OfacMatch responsibly](https://github.com/krunalsolanki/ofac-match/blob/main/docs/compliance-notes.md) | Thresholds, review, record keeping, limits |
+| [Evaluation](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation.md) | Full results by variation and setting |
+| [MCP server](https://github.com/krunalsolanki/ofac-match/blob/main/src/OfacMatch.Mcp/README.md) | Using OfacMatch from AI assistants |
 
 ## What's next
 
@@ -135,11 +135,11 @@ Things I'd like to work on, roughly in order:
 - [ ] Faster batch screening
 - [ ] An ASP.NET Core sample and a `dotnet tool` package
 
-If you'd like to help with any of these, or have a case that scores badly, open an issue. [CONTRIBUTING.md](CONTRIBUTING.md) has the details.
+If you'd like to help with any of these, or have a case that scores badly, open an issue. [CONTRIBUTING.md](https://github.com/krunalsolanki/ofac-match/blob/main/CONTRIBUTING.md) has the details.
 
 ## Credits
 
-Built by [Krunal Solanki](https://github.com/krunalsolanki). The idea and the compliance background come from my work on OFAC screening in mortgage lending. I used AI coding tools (Claude) to help write the code, tests and documentation, and I review and maintain everything here.
+Built by [Krunal Solanki](https://github.com/krunalsolanki). The idea and the compliance background come from my work on OFAC screening in mortgage lending.
 
 ## Data
 
@@ -147,4 +147,4 @@ The SDN list is published by the U.S. Department of the Treasury's Office of For
 
 ## License
 
-[Apache License 2.0](LICENSE)
+[Apache License 2.0](https://github.com/krunalsolanki/ofac-match/blob/main/LICENSE)

@@ -7,9 +7,40 @@ namespace OfacMatch.Screening;
 /// <summary>What to screen.</summary>
 public sealed class ScreeningRequest
 {
+    /// <summary>Longest name accepted. Real names are far shorter; the limit keeps one bad input from slowing a batch.</summary>
+    public const int MaxNameLength = 500;
+
+    /// <summary>Longest country name accepted.</summary>
+    public const int MaxCountryLength = 100;
+
+    /// <summary>Earliest year of birth accepted.</summary>
+    public const int MinYearOfBirth = 1800;
+
+    private EntryType? _type;
+    private int? _yearOfBirth;
+    private string? _country;
+    private double? _minScore;
+    private int? _maxResults;
+
     /// <summary>Creates a request for a name.</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="name"/> is longer than <see cref="MaxNameLength"/> or has no letters or digits.
+    /// </exception>
     public ScreeningRequest(string name)
     {
+        Guard.NotNull(name, nameof(name));
+        if (name.Length > MaxNameLength)
+        {
+            throw new ArgumentException($"Name is longer than {MaxNameLength} characters.", nameof(name));
+        }
+
+        // A blank or punctuation-only name would match nothing and look like a clean result.
+        if (!name.Any(char.IsLetterOrDigit))
+        {
+            throw new ArgumentException("Name must contain at least one letter or digit.", nameof(name));
+        }
+
         Name = name;
     }
 
@@ -17,38 +48,98 @@ public sealed class ScreeningRequest
     public string Name { get; }
 
     /// <summary>Only screen entries of this type, e.g. individuals for a borrower.</summary>
-    public EntryType? Type { get; set; }
+    public EntryType? Type
+    {
+        get => _type;
+        set
+        {
+            if (value is EntryType type && !Enum.IsDefined(typeof(EntryType), type))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), type, "Unknown entry type.");
+            }
 
-    /// <summary>The party's year of birth, used to flag matches whose listed dates of birth disagree.</summary>
-    public int? YearOfBirth { get; set; }
+            _type = value;
+        }
+    }
+
+    /// <summary>
+    /// The party's year of birth, used to flag matches whose listed dates of birth disagree.
+    /// Must be between <see cref="MinYearOfBirth"/> and the current year.
+    /// </summary>
+    public int? YearOfBirth
+    {
+        get => _yearOfBirth;
+        set => _yearOfBirth = value is int year ? Guard.InRange(year, MinYearOfBirth, DateTime.UtcNow.Year, nameof(value)) : null;
+    }
 
     /// <summary>The party's country, used to flag matches whose listed addresses are all elsewhere.</summary>
-    public string? Country { get; set; }
+    public string? Country
+    {
+        get => _country;
+        set
+        {
+            if (value is not null && value.Length > MaxCountryLength)
+            {
+                throw new ArgumentException($"Country is longer than {MaxCountryLength} characters.", nameof(value));
+            }
 
-    /// <summary>Overrides <see cref="ScreeningOptions.MinScore"/> for this request.</summary>
-    public double? MinScore { get; set; }
+            _country = value;
+        }
+    }
 
-    /// <summary>Overrides <see cref="ScreeningOptions.MaxResults"/> for this request.</summary>
-    public int? MaxResults { get; set; }
+    /// <summary>Overrides <see cref="ScreeningOptions.MinScore"/> for this request. Must be 0-100.</summary>
+    public double? MinScore
+    {
+        get => _minScore;
+        set => _minScore = value is double score ? Guard.InRange(score, 0, 100, nameof(value)) : null;
+    }
+
+    /// <summary>Overrides <see cref="ScreeningOptions.MaxResults"/> for this request. Must be at least 1.</summary>
+    public int? MaxResults
+    {
+        get => _maxResults;
+        set => _maxResults = value is int max ? Guard.InRange(max, 1, int.MaxValue, nameof(value)) : null;
+    }
 }
 
 /// <summary>Screening settings.</summary>
 public sealed class ScreeningOptions
 {
+    private double _minScore = 85;
+    private int _maxResults = 25;
+    private int _yearOfBirthTolerance = 1;
+    private ScoringOptions _scoring = new();
+
     /// <summary>
     /// Lowest score (0-100) to return. OFAC recommends no threshold; set one from your own risk
     /// assessment. Default 85.
     /// </summary>
-    public double MinScore { get; set; } = 85;
+    public double MinScore
+    {
+        get => _minScore;
+        set => _minScore = Guard.InRange(value, 0, 100, nameof(value));
+    }
 
-    /// <summary>Maximum number of matches to return. Default 25.</summary>
-    public int MaxResults { get; set; } = 25;
+    /// <summary>Maximum number of matches to return, at least 1. Default 25.</summary>
+    public int MaxResults
+    {
+        get => _maxResults;
+        set => _maxResults = Guard.InRange(value, 1, int.MaxValue, nameof(value));
+    }
 
-    /// <summary>Years of difference allowed before a date of birth counts as a conflict. Default 1.</summary>
-    public int YearOfBirthTolerance { get; set; } = 1;
+    /// <summary>Years of difference (0-100) allowed before a date of birth counts as a conflict. Default 1.</summary>
+    public int YearOfBirthTolerance
+    {
+        get => _yearOfBirthTolerance;
+        set => _yearOfBirthTolerance = Guard.InRange(value, 0, 100, nameof(value));
+    }
 
     /// <summary>Name scoring settings.</summary>
-    public ScoringOptions Scoring { get; set; } = new();
+    public ScoringOptions Scoring
+    {
+        get => _scoring;
+        set => _scoring = Guard.NotNull(value, nameof(value));
+    }
 }
 
 /// <summary>A potential match. A person must review it: a score measures name similarity, not identity.</summary>
@@ -141,7 +232,7 @@ public sealed class SanctionsScreener
         }
     }
 
-    /// <summary>Screens a name.</summary>
+    /// <summary>Screens a name. Throws <see cref="ArgumentException"/> for a name <see cref="ScreeningRequest"/> rejects.</summary>
     public IReadOnlyList<ScreeningMatch> Screen(string name) => Screen(new ScreeningRequest(name));
 
     /// <summary>Screens a request and returns potential matches, best first, one per entry.</summary>

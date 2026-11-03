@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
 using OfacMatch.Data;
 using OfacMatch.Screening;
 
@@ -17,6 +18,8 @@ public sealed class ListSettings
     /// <summary>OFACMATCH_REFRESH_HOURS: how old the cached list may get before it is downloaded again. Default 24.</summary>
     public double RefreshHours { get; init; } = 24;
 
+    private const double MaxRefreshHours = 24 * 365;
+
     public static ListSettings FromEnvironment()
     {
         var refresh = Environment.GetEnvironmentVariable("OFACMATCH_REFRESH_HOURS");
@@ -24,7 +27,8 @@ public sealed class ListSettings
         {
             DataDirectory = NullIfEmpty(Environment.GetEnvironmentVariable("OFACMATCH_DATA_DIR")),
             CacheDirectory = NullIfEmpty(Environment.GetEnvironmentVariable("OFACMATCH_CACHE_DIR")) ?? DefaultCacheDirectory(),
-            RefreshHours = double.TryParse(refresh, NumberStyles.Float, CultureInfo.InvariantCulture, out var hours) && hours > 0 ? hours : 24,
+            // Capped at a year so a huge value can't overflow TimeSpan.FromHours.
+            RefreshHours = double.TryParse(refresh, NumberStyles.Float, CultureInfo.InvariantCulture, out var hours) && hours > 0 && hours <= MaxRefreshHours ? hours : 24,
         };
     }
 
@@ -66,6 +70,13 @@ public sealed class SanctionsListProvider : IDisposable
             }
 
             return _current;
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or HttpRequestException or UnauthorizedAccessException
+            || (ex is TaskCanceledException && !cancellationToken.IsCancellationRequested))
+        {
+            // Without this the client only sees "An error occurred". Never screen against a list that failed to load.
+            _logger.LogError(ex, "Could not load the SDN list");
+            throw new McpException($"Could not load the OFAC SDN list: {ex.Message}", ex);
         }
         finally
         {

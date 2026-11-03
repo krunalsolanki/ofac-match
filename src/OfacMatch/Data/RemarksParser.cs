@@ -22,10 +22,22 @@ internal static class RemarksParser
         foreach (Match m in DobPattern.Matches(remarks))
         {
             var year = int.Parse(m.Groups["year"].Value, CultureInfo.InvariantCulture);
+            if (year < 1)
+            {
+                continue;
+            }
+
             int? month = m.Groups["month"].Success ? MonthNumber(m.Groups["month"].Value) : null;
             int? day = month is not null && m.Groups["day"].Success
                 ? int.Parse(m.Groups["day"].Value, CultureInfo.InvariantCulture)
                 : null;
+
+            // Keep the year and month of a mistyped day such as "DOB 31 Feb 1970" rather than failing the whole list.
+            if (day is int d && (d < 1 || d > DateTime.DaysInMonth(year, month!.Value)))
+            {
+                day = null;
+            }
+
             dates.Add(new PartialDate(year, month, day));
         }
 

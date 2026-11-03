@@ -1,5 +1,7 @@
 # OfacMatch MCP server
 
+<!-- mcp-name: io.github.krunalsolanki/ofac-match -->
+
 An [MCP](https://modelcontextprotocol.io/) server that lets AI assistants such as Claude, GitHub Copilot and other MCP clients screen names against the U.S. Treasury OFAC SDN sanctions list, using [OfacMatch](https://github.com/krunalsolanki/ofac-match).
 
 It runs on your machine, needs no API key, and downloads the official list straight from OFAC.
