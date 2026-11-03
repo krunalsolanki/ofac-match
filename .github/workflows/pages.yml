@@ -1,0 +1,67 @@
+name: Web demo
+
+# Publishes the try-it page (samples/OfacMatch.Web) to GitHub Pages.
+# Browsers can't download the list from OFAC directly, so the page uses a copy
+# taken here. The daily run keeps that copy current.
+on:
+  push:
+    branches: [main]
+    paths:
+      - samples/OfacMatch.Web/**
+      - src/OfacMatch/**
+      - .github/workflows/pages.yml
+  schedule:
+    - cron: "30 6 * * *" # daily, 06:30 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Download the SDN list from OFAC
+        run: |
+          data=samples/OfacMatch.Web/wwwroot/data
+          mkdir -p "$data"
+          for file in SDN.CSV ALT.CSV ADD.CSV; do
+            curl -fsSL --retry 3 -A "OfacMatch/0.1 (+https://github.com/krunalsolanki/ofac-match)" \
+              -o "$data/$file" "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/$file"
+          done
+          # Stop rather than publish an empty or broken list (e.g. an HTML error page).
+          entries=$(wc -l < "$data/SDN.CSV")
+          if [ "$entries" -lt 10000 ] || ! head -c 1 "$data/SDN.CSV" | grep -q '[0-9]'; then
+            echo "::error::SDN.CSV looks wrong ($entries lines)."
+            exit 1
+          fi
+          echo "{\"downloadedUtc\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "$data/info.json"
+
+      - name: Publish
+        run: dotnet publish samples/OfacMatch.Web --configuration Release --output publish
+
+      # Pages serves the site from /ofac-match/, not the root.
+      - name: Set the base path
+        run: sed -i 's|<base href="/" />|<base href="/ofac-match/" />|' publish/wwwroot/index.html
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: publish/wwwroot
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

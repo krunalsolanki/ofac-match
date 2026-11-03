@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/samples/">
     <Project Path="samples/OfacMatch.Cli/OfacMatch.Cli.csproj" />
+    <Project Path="samples/OfacMatch.Web/OfacMatch.Web.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/OfacMatch.Mcp/OfacMatch.Mcp.csproj" />

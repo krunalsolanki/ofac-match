@@ -1,0 +1,256 @@
+﻿@page "/"
+@using OfacMatch.Data
+@using OfacMatch.Screening
+@inject SanctionsData Data
+
+<PageTitle>OfacMatch – try OFAC name screening</PageTitle>
+
+<header>
+    <h1>OfacMatch</h1>
+    <p class="tagline">Screen a name against the OFAC SDN sanctions list and see <em>why</em> it matched.</p>
+    <p class="private">Runs entirely in your browser. The names you type are never sent anywhere.</p>
+</header>
+
+<main>
+    <form class="search" @onsubmit="ScreenAsync" @onsubmit:preventDefault>
+        <label class="name">
+            Name
+            <input @bind="_name" placeholder="e.g. Aymen Zawahri or DOE, John" maxlength="@ScreeningRequest.MaxNameLength" autofocus />
+        </label>
+        <label>
+            Year of birth <span class="optional">optional</span>
+            <input type="number" @bind="_yearOfBirth" placeholder="1970" min="@ScreeningRequest.MinYearOfBirth" max="@DateTime.UtcNow.Year" />
+        </label>
+        <label>
+            Country <span class="optional">optional</span>
+            <input @bind="_country" placeholder="e.g. Egypt" maxlength="@ScreeningRequest.MaxCountryLength" />
+        </label>
+        <label>
+            Type
+            <select @bind="_type">
+                <option value="">All</option>
+                @foreach (var type in Enum.GetValues<EntryType>())
+                {
+                    <option value="@type">@type</option>
+                }
+            </select>
+        </label>
+        <label>
+            Minimum score
+            <input type="number" @bind="_minScore" min="0" max="100" step="1" />
+        </label>
+        <button type="submit" disabled="@_busy">@(_busy ? "Screening…" : "Screen")</button>
+    </form>
+
+    <p class="examples">
+        Try:
+        <button type="button" @onclick='() => TryAsync("Aymen Zawahri", 1951)'>Aymen Zawahri, born 1951</button>
+        <button type="button" @onclick='() => TryAsync("Aymen Zawahri", 1990)'>same name, born 1990</button>
+        <button type="button" @onclick='() => TryAsync("John Smith", null)'>John Smith</button>
+    </p>
+
+    @if (_error is not null)
+    {
+        <p class="error" role="alert">@_error</p>
+    }
+
+    @if (_status is not null)
+    {
+        <p class="status" aria-live="polite">@_status</p>
+    }
+
+    @if (_matches is not null)
+    {
+        <h2>@ResultTitle</h2>
+        @if (_matches.Count == 0)
+        {
+            <p class="clear">No listed name scored @_usedMinScore or higher.</p>
+        }
+
+        @foreach (var match in _matches)
+        {
+            <article class="match">
+                <div class="score @ScoreClass(match.Score)">@match.Score.ToString("0.0")</div>
+                <div class="detail">
+                    <h3>@match.Entry.Name</h3>
+                    <p class="meta">
+                        Entry @match.Entry.Id · @match.Entry.Type · programs: @string.Join(", ", match.Entry.Programs)
+                    </p>
+                    <p>
+                        Matched the @Kind(match.NameKind)
+                        <strong>“@match.MatchedName”</strong> using @Technique(match.NameScore.Technique).
+                    </p>
+
+                    @if (match.DateOfBirthConflict)
+                    {
+                        <p class="conflict">Date of birth conflict: listed @string.Join(", ", match.Entry.DatesOfBirth). Likely a different person; review before clearing.</p>
+                    }
+
+                    @if (match.CountryConflict)
+                    {
+                        <p class="conflict">Country conflict: listed @string.Join(", ", match.Entry.Countries).</p>
+                    }
+
+                    <table>
+                        <thead>
+                            <tr><th>Your name part</th><th>Listed part</th><th>Similarity</th><th>Sounds alike</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var part in match.NameScore.Parts)
+                            {
+                                <tr>
+                                    <td>@part.QueryPart</td>
+                                    <td>@(part.ListedPart ?? "no match")</td>
+                                    <td>@part.Similarity.ToString("0.000")</td>
+                                    <td>@(part.SoundsAlike ? "yes" : "no")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <p class="meta">
+                        Whole-name score @match.NameScore.FullNameScore.ToString("0.0")@(match.NameScore.FullNameCounts ? "" : " (not counted: a name part has no close partner)");
+                        name-parts score @match.NameScore.NamePartsScore.ToString("0.0").
+                    </p>
+                </div>
+            </article>
+        }
+    }
+
+    <section class="notice">
+        <p>
+            Potential matches only. A score measures how alike two names are written, not whether they are the same party.
+            A person must review each match against the full record before any decision. Not legal advice.
+        </p>
+        @if (Data.Entries > 0)
+        {
+            <p>
+                List: @Data.Entries.ToString("N0") entries and @Data.Aliases.ToString("N0") aliases from OFAC@(Data.DownloadedUtc is { } at ? $", downloaded {at:yyyy-MM-dd HH:mm} UTC" : "").
+            </p>
+        }
+    </section>
+
+    <section class="install">
+        <h2>Use it in your own code or AI assistant</h2>
+        <p>.NET library:</p>
+        <pre>dotnet add package OfacMatch</pre>
+        <p>MCP server for Claude, VS Code and Visual Studio:</p>
+        <pre>claude mcp add ofac-match -- dnx OfacMatch.Mcp --yes</pre>
+        <p><a href="https://github.com/krunalsolanki/ofac-match">Source, docs and evaluation on GitHub</a> · Built by Krunal Solanki</p>
+    </section>
+</main>
+
+@code {
+    private string _name = "";
+    private int? _yearOfBirth;
+    private string _country = "";
+    private string _type = "";
+    private double _minScore = 85;
+    private double _usedMinScore;
+    private bool _busy;
+    private string? _status;
+    private string? _error;
+    private string? _screenedName;
+    private IReadOnlyList<ScreeningMatch>? _matches;
+
+    private string ResultTitle => _matches!.Count == 1
+        ? $"1 potential match for “{_screenedName}”"
+        : $"{_matches.Count} potential matches for “{_screenedName}”";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        // Start loading the list right away, so it is usually ready by the time a name is typed.
+        _status = "Loading the OFAC list (first visit only)…";
+        StateHasChanged();
+        await Task.Delay(1);
+        try
+        {
+            await Data.GetAsync();
+            _status = null;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidDataException)
+        {
+            _status = null;
+            _error = "Couldn't load the OFAC list. Reload the page to try again.";
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task TryAsync(string name, int? yearOfBirth)
+    {
+        _name = name;
+        _yearOfBirth = yearOfBirth;
+        _country = "";
+        _type = "";
+        _minScore = 85;
+        await ScreenAsync();
+    }
+
+    private async Task ScreenAsync()
+    {
+        _error = null;
+        _matches = null;
+
+        ScreeningRequest request;
+        try
+        {
+            // The library's own validation gives the messages, e.g. a blank name or a year out of range.
+            request = new ScreeningRequest(_name)
+            {
+                YearOfBirth = _yearOfBirth,
+                Country = string.IsNullOrWhiteSpace(_country) ? null : _country.Trim(),
+                Type = Enum.TryParse<EntryType>(_type, out var type) ? type : null,
+                MinScore = _minScore,
+            };
+        }
+        catch (ArgumentException ex)
+        {
+            _error = ex.Message.Split('\n')[0].Replace($" (Parameter '{ex.ParamName}')", "");
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            if (Data.Entries == 0)
+            {
+                _status = "Loading the OFAC list (about 8 MB, first time only)…";
+                StateHasChanged();
+                await Task.Delay(1); // let the status render before the work starts
+            }
+
+            var screener = await Data.GetAsync();
+            _status = null;
+            _matches = screener.Screen(request);
+            _screenedName = request.Name;
+            _usedMinScore = _minScore;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidDataException)
+        {
+            _status = null;
+            _error = "Couldn't load the OFAC list. Reload the page to try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string ScoreClass(double score) => score >= 95 ? "high" : score >= 90 ? "medium" : "low";
+
+    private static string Technique(OfacMatch.Matching.MatchTechnique technique) =>
+        technique == OfacMatch.Matching.MatchTechnique.NameParts ? "name-part matching" : "whole-name matching";
+
+    private static string Kind(NameKind kind) => kind switch
+    {
+        NameKind.Primary => "primary name",
+        NameKind.Aka => "alias (also known as)",
+        NameKind.Fka => "former name",
+        _ => "new name",
+    };
+}

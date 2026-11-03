@@ -482,3 +482,6 @@ ofac-data/
 
 # Personal IDE launch profiles (kept locally, not shared)
 **/Properties/launchSettings.json
+
+# OFAC list copy for the web demo; the Pages workflow downloads a fresh one
+samples/OfacMatch.Web/wwwroot/data/
