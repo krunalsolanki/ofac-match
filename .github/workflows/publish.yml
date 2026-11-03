@@ -32,6 +32,12 @@ jobs:
               exit 1
             fi
           done
+          # The Claude plugin pins the MCP server package, so its version must move with each release too.
+          plugin=plugins/ofac-match/.claude-plugin/plugin.json
+          if [ "$(jq -r .version $plugin)" != "$tag" ] || [ "$(jq -r '.mcpServers["ofac-match"].args[0]' $plugin)" != "OfacMatch.Mcp@$tag" ]; then
+            echo "::error::$plugin must have version $tag and run OfacMatch.Mcp@$tag"
+            exit 1
+          fi
 
       - name: Build
         run: dotnet build --configuration Release

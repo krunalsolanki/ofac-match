@@ -1,0 +1,24 @@
+{
+  "name": "ofac-match",
+  "displayName": "OfacMatch",
+  "version": "0.1.1",
+  "description": "Screen names against the OFAC SDN sanctions list and explain every potential match. Runs locally; names never leave your computer.",
+  "author": {
+    "name": "Krunal Solanki",
+    "url": "https://github.com/krunalsolanki"
+  },
+  "homepage": "https://github.com/krunalsolanki/ofac-match",
+  "repository": "https://github.com/krunalsolanki/ofac-match",
+  "license": "Apache-2.0",
+  "keywords": ["ofac", "sanctions", "sdn", "screening", "compliance", "aml", "kyc"],
+  "icon": "./logo.png",
+  "documentationUrl": "https://github.com/krunalsolanki/ofac-match/blob/main/src/OfacMatch.Mcp/README.md",
+  "supportUrl": "https://github.com/krunalsolanki/ofac-match/issues",
+  "privacyPolicyUrl": "https://github.com/krunalsolanki/ofac-match/blob/main/PRIVACY.md",
+  "mcpServers": {
+    "ofac-match": {
+      "command": "dnx",
+      "args": ["OfacMatch.Mcp@0.1.1", "--yes"]
+    }
+  }
+}

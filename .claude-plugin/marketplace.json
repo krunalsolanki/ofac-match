@@ -1,0 +1,17 @@
+{
+  "name": "ofac-match",
+  "owner": {
+    "name": "Krunal Solanki",
+    "url": "https://github.com/krunalsolanki"
+  },
+  "description": "OfacMatch: explainable OFAC SDN sanctions screening for Claude.",
+  "plugins": [
+    {
+      "name": "ofac-match",
+      "source": "./plugins/ofac-match",
+      "description": "Screen names against the OFAC SDN sanctions list and explain every potential match. Runs locally; names never leave your computer.",
+      "category": "compliance",
+      "tags": ["ofac", "sanctions", "screening", "compliance"]
+    }
+  ]
+}

@@ -86,6 +86,12 @@ OFAC updates the list often. Reload it at least daily, and screen against the cu
 
 **Claude Desktop:** download the extension for your computer from the [latest release](https://github.com/krunalsolanki/ofac-match/releases/latest) (`ofac-match-windows.mcpb` or `ofac-match-mac-*.mcpb`) and double-click it. No .NET or config file needed.
 
+**Claude Code plugin** (adds the server plus a skill for reporting results responsibly; needs the .NET 10 SDK):
+
+```
+/plugin install ofac-match --marketplace krunalsolanki/ofac-match
+```
+
 **Claude Code and other clients** (needs the .NET 10 SDK):
 
 ```bash
