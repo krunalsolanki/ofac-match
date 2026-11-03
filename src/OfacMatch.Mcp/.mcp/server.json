@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
-  "description": "Explainable OFAC sanctions name screening: screen names against the official SDN list, look up entries and explain scores. Runs locally, no API key.",
+  "description": "Explainable OFAC sanctions name screening against the SDN list. Runs locally, no API key.",
   "name": "io.github.krunalsolanki/ofac-match",
   "version": "0.1.0",
   "packages": [
