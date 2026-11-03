@@ -1,6 +1,7 @@
 # OfacMatch
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23926803.svg)](https://doi.org/10.5281/zenodo.23926803)
+[![Software DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23926803.svg)](https://doi.org/10.5281/zenodo.23926803)
+[![Paper DOI](https://img.shields.io/badge/paper-10.5281%2Fzenodo.23930926-blue)](https://doi.org/10.5281/zenodo.23930926)
 
 OFAC sanctions name screening for .NET that tells you *why* a name matched.
 
@@ -155,11 +156,27 @@ If you'd like to help with any of these, or have a case that scores badly, open 
 
 ## Citation
 
-If you use OfacMatch in research or a write-up, please cite it:
+If you use OfacMatch in research or a write-up, please cite the paper:
+
+> Solanki, K. (2026). *Explainable Name Screening Against the OFAC SDN List: An Open Implementation and Reproducible Evaluation* (preprint). Zenodo. https://doi.org/10.5281/zenodo.23930926
+
+```bibtex
+@misc{solanki2026ofacmatch,
+  author    = {Solanki, Krunal},
+  title     = {Explainable Name Screening Against the {OFAC} {SDN} List: An Open Implementation and Reproducible Evaluation},
+  year      = {2026},
+  publisher = {Zenodo},
+  note      = {Preprint},
+  doi       = {10.5281/zenodo.23930926},
+  url       = {https://doi.org/10.5281/zenodo.23930926}
+}
+```
+
+To cite the software itself:
 
 > Solanki, K. *OfacMatch: explainable OFAC sanctions name screening* (software). Zenodo. https://doi.org/10.5281/zenodo.23926803
 
-The DOI above always points to the latest version; each release also has its own DOI on [Zenodo](https://doi.org/10.5281/zenodo.23926803). GitHub's **Cite this repository** button gives the same details in other formats.
+Both DOIs always point to the latest version; each version also has its own DOI on Zenodo. GitHub's **Cite this repository** button gives the paper citation in other formats.
 
 ## Credits
 

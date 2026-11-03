@@ -8,6 +8,7 @@
   "license": "apache-2.0",
   "keywords": ["OFAC", "sanctions screening", "name matching", "Jaro-Winkler", "Soundex", "explainable AI", "compliance", "AML", "KYC", "MCP"],
   "related_identifiers": [
-    { "identifier": "https://github.com/krunalsolanki/ofac-match", "relation": "isSupplementTo", "scheme": "url" }
+    { "identifier": "https://github.com/krunalsolanki/ofac-match", "relation": "isSupplementTo", "scheme": "url" },
+    { "identifier": "10.5281/zenodo.23930926", "relation": "isDescribedBy", "resource_type": "publication-preprint", "scheme": "doi" }
   ]
 }

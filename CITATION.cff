@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use OfacMatch in your work, please cite it as below."
+message: "If you use OfacMatch in your work, please cite the paper below. To cite the software itself, use the metadata in this file."
 title: "OfacMatch: explainable OFAC sanctions name screening"
 abstract: >-
   OfacMatch screens person, company, vessel and aircraft names against the
@@ -16,6 +16,7 @@ authors:
     given-names: Krunal
     orcid: "https://orcid.org/0009-0008-2350-8196"
 version: 0.1.2
+doi: 10.5281/zenodo.23926803
 date-released: 2026-11-03
 license: Apache-2.0
 repository-code: "https://github.com/krunalsolanki/ofac-match"
@@ -31,3 +32,17 @@ keywords:
   - AML
   - KYC
   - MCP
+preferred-citation:
+  type: article
+  status: preprint
+  title: "Explainable Name Screening Against the OFAC SDN List: An Open Implementation and Reproducible Evaluation"
+  authors:
+    - family-names: Solanki
+      given-names: Krunal
+      orcid: "https://orcid.org/0009-0008-2350-8196"
+  year: 2026
+  date-published: 2026-11-03
+  publisher:
+    name: Zenodo
+  doi: 10.5281/zenodo.23930926
+  url: "https://doi.org/10.5281/zenodo.23930926"
