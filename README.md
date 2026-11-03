@@ -149,6 +149,10 @@ If you'd like to help with any of these, or have a case that scores badly, open 
 
 Built by [Krunal Solanki](https://github.com/krunalsolanki). The idea and the compliance background come from my work on OFAC screening in mortgage lending.
 
+## Privacy Policy
+
+OfacMatch collects nothing. Names you screen are processed on your own computer, or in your browser for the web page, and are never sent anywhere. The only network request is the download of the public SDN list from OFAC, which is cached locally. Full details: [PRIVACY.md](https://github.com/krunalsolanki/ofac-match/blob/main/PRIVACY.md).
+
 ## Data
 
 The SDN list is published by the U.S. Department of the Treasury's Office of Foreign Assets Control. OfacMatch downloads it from OFAC's [Sanctions List Service](https://ofac.treasury.gov/sanctions-list-service) and does not redistribute it. The unit tests use fictional names only.

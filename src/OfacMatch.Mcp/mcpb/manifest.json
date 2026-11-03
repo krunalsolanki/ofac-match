@@ -50,6 +50,7 @@
   },
   "keywords": ["ofac", "sanctions", "sdn", "screening", "compliance", "aml", "kyc"],
   "license": "Apache-2.0",
+  "privacy_policies": ["https://github.com/krunalsolanki/ofac-match/blob/main/PRIVACY.md"],
   "compatibility": {
     "platforms": ["win32", "darwin"]
   }
