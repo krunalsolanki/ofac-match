@@ -1,0 +1,120 @@
+namespace OfacMatch.Data;
+
+/// <summary>The kind of party an SDN entry describes.</summary>
+public enum EntryType
+{
+    /// <summary>A company, organization or other entity (blank type in SDN.CSV).</summary>
+    Entity,
+    /// <summary>A natural person.</summary>
+    Individual,
+    /// <summary>A vessel.</summary>
+    Vessel,
+    /// <summary>An aircraft.</summary>
+    Aircraft,
+}
+
+/// <summary>How a name relates to its entry.</summary>
+public enum NameKind
+{
+    /// <summary>The entry's primary SDN name.</summary>
+    Primary,
+    /// <summary>Also known as.</summary>
+    Aka,
+    /// <summary>Formerly known as.</summary>
+    Fka,
+    /// <summary>Now known as.</summary>
+    Nka,
+}
+
+/// <summary>A date that may be known only to the year or month, as OFAC often records dates of birth.</summary>
+public sealed class PartialDate
+{
+    public PartialDate(int year, int? month = null, int? day = null)
+    {
+        Year = year;
+        Month = month;
+        Day = day;
+    }
+
+    public int Year { get; }
+    public int? Month { get; }
+    public int? Day { get; }
+
+    /// <inheritdoc />
+    public override string ToString() =>
+        Day is int d && Month is int m ? $"{Year:0000}-{m:00}-{d:00}"
+        : Month is int mo ? $"{Year:0000}-{mo:00}"
+        : $"{Year:0000}";
+}
+
+/// <summary>An alternate name (aka, fka or nka) from ALT.CSV.</summary>
+public sealed class SanctionsAlias
+{
+    public SanctionsAlias(NameKind kind, string name, string? remarks = null)
+    {
+        Kind = kind;
+        Name = name;
+        Remarks = remarks;
+    }
+
+    public NameKind Kind { get; }
+    public string Name { get; }
+    public string? Remarks { get; }
+}
+
+/// <summary>An address from ADD.CSV.</summary>
+public sealed class SanctionsAddress
+{
+    public SanctionsAddress(string? street, string? cityStateZip, string? country)
+    {
+        Street = street;
+        CityStateZip = cityStateZip;
+        Country = country;
+    }
+
+    public string? Street { get; }
+    public string? CityStateZip { get; }
+    public string? Country { get; }
+}
+
+/// <summary>One entry on the OFAC Specially Designated Nationals (SDN) list.</summary>
+public sealed class SanctionsEntry
+{
+    public SanctionsEntry(
+        int id,
+        string name,
+        EntryType type,
+        IReadOnlyList<string> programs,
+        string? title,
+        string? remarks)
+    {
+        Id = id;
+        Name = name;
+        Type = type;
+        Programs = programs;
+        Title = title;
+        Remarks = remarks;
+        DatesOfBirth = RemarksParser.ParseDatesOfBirth(remarks);
+    }
+
+    public int Id { get; }
+    public string Name { get; }
+    public EntryType Type { get; }
+    public IReadOnlyList<string> Programs { get; }
+    public string? Title { get; }
+    public string? Remarks { get; }
+    public IReadOnlyList<PartialDate> DatesOfBirth { get; }
+
+    /// <summary>Alternate names.</summary>
+    public IList<SanctionsAlias> Aliases { get; } = new List<SanctionsAlias>();
+
+    /// <summary>Known addresses.</summary>
+    public IList<SanctionsAddress> Addresses { get; } = new List<SanctionsAddress>();
+
+    /// <summary>Distinct countries from <see cref="Addresses"/>.</summary>
+    public IEnumerable<string> Countries =>
+        Addresses.Select(a => a.Country).OfType<string>().Distinct(StringComparer.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override string ToString() => $"{Id} {Name} ({Type})";
+}
