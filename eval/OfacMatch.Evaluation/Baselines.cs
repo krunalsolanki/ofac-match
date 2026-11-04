@@ -13,7 +13,7 @@ namespace OfacMatch.Evaluation;
 /// Every method sees the same normalized name parts and keeps the best-scoring name per entry,
 /// so only the comparison itself differs. Baselines compare against every listed name (no pre-filter).
 /// </summary>
-internal static class Baselines
+internal static partial class Baselines
 {
     private static readonly double[] Thresholds = { 80, 85, 90, 95 };
     private static readonly double[] AlertBudgets = { 0.01, 0.05, 0.10, 0.20 };
@@ -621,6 +621,8 @@ internal static class Baselines
         public EntryType Type { get; init; }
 
         public (int[] Ids, double[] Weights)? Vector { get; set; }
+
+        public int[]? Grams { get; set; }
     }
 
     private sealed class Query

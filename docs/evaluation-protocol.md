@@ -37,6 +37,23 @@ The development set includes every case used in the evaluation of release 0.1.2,
 
 **Not done, on purpose:** a dictionary of nicknames and equivalent names (Aleksandr and Sasha, Yusuf and Joseph). The nickname test cases are generated from such a dictionary, so adding one to the matcher would only show that the matcher and the test share a list. It needs an independent source and independent test cases.
 
+## Pipeline measurements
+
+These measure the other stages of the frozen 2.0.0 pipeline: blocking, conflict flags and explanations. They change nothing in the method and choose no settings for it, so they are reported on both sets. All settings below were written down before the first run.
+
+**Blocking.** Each blocking method decides which listed names are compared with a search at all. Every kept name is then scored with OfacMatch's default scoring.
+
+- *None:* every listed name of the searched type.
+- *First letter (OfacMatch's pre-filter):* at least one part of the listed name starts with the same letter as a part of the search.
+- *Soundex:* at least one part of the listed name shares an American Soundex code with a part of the search.
+- *Trigram index, k = 2 and k = 3:* the listed name shares at least k distinct character trigrams with the search. Each name part is padded with `#` on both sides, so AYMAN gives #AY, AYM, YMA, MAN and AN#.
+
+Measures: *pairs completeness* (share of positive cases whose listed entry still has at least one name kept), *recall at 85 after blocking*, *reduction ratio* (share of name comparisons skipped, over all searches), alerts at 85 on ordinary names after blocking, and time per search on the first 1,000 searches of the set. Blocking alternatives are measured only; none is added to the library by this measurement.
+
+**Conflict flags.** Every ordinary and near-miss name is given a year of birth drawn uniformly from 1940 to 2006 and the country "United States" (the typical customer of a U.S. lender), with the default tolerance of one year. For alerts at 85 and 90, we report the share with a date-of-birth conflict, a country conflict, either, or neither. As a check, each positive individual case is given a year of birth and a country from its own listed entry, where the entry has them; any flag on those would be an error. We also report how many listed entries have a date of birth or a country at all.
+
+**Explanation.** For every match at 80 or above, on every search in the set, the score is recomputed only from what `match.Explain()` prints: the listed name, each searched part with its partner, the similarity to three decimals and the sounds-alike note, the whole-name score, and whether it counts and whether the score was taken from the listed name. A match counts as reproduced when the recomputed score is within 0.1 of the reported score.
+
 ## Commands
 
 Development set (any time):
