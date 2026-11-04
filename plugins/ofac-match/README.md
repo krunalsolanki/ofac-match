@@ -31,11 +31,11 @@ On older Claude Code versions, add the marketplace first, then install:
 
 ## Requirements
 
-The server is the [OfacMatch.Mcp](https://www.nuget.org/packages/OfacMatch.Mcp) NuGet package, version 0.1.2, started with `dnx`. It needs the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet), which includes `dnx`.
+The server is the [OfacMatch.Mcp](https://www.nuget.org/packages/OfacMatch.Mcp) NuGet package, version 2.0.0, started with `dnx`. It needs the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet), which includes `dnx`.
 
 ## What it runs, sends and fetches
 
-- **Runs:** `dnx OfacMatch.Mcp@0.1.2 --yes`, which downloads that exact package version from nuget.org the first time and starts it on your computer.
+- **Runs:** `dnx OfacMatch.Mcp@2.0.0 --yes`, which downloads that exact package version from nuget.org the first time and starts it on your computer.
 - **Fetches:** the public SDN list (SDN.CSV, ALT.CSV, ADD.CSV) from OFAC's Sanctions List Service at `https://sanctionslistservice.ofac.treas.gov`, cached on your computer for 24 hours.
 - **Sends:** nothing. The names you screen are processed locally and never leave your computer.
 

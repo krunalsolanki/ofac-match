@@ -2,6 +2,17 @@
 
 All notable changes are listed here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-11-04
+
+### Changed
+
+- A search with more name parts than a listed name of two or more parts (an extra middle name, for example) is also scored from the listed name's side, reduced slightly for the extra parts (`ScoringOptions.ExtraPartPenalty`, default 0.1, chosen on a development set; see `docs/evaluation-protocol.md`). On the development set, searches with an extra middle name are found at a threshold of 85 in 100% of cases, against 19.3% before. Two-part searches score as before; three-part ordinary names alert more often at 85 (22.5% against 6.8%). Set `ScoringOptions.AllowExtraSearchedParts = false` for the previous behaviour.
+
+### Added
+
+- `NameScore.ScoredFromListedName`, shown in explanations and in the MCP `compare_names` result.
+- Evaluation: harder variations (wrong first letter, two typos, nicknames, first-name initial, extra middle name), near-miss names, and a comparison with standard baselines and ablations (`--baselines`, `docs/baselines.md`).
+
 ## [0.1.2] - 2026-11-03
 
 ### Added

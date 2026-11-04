@@ -40,13 +40,21 @@ public sealed class PartMatch
 /// <summary>The result of comparing two names, with the evidence behind the score.</summary>
 public sealed class NameScore
 {
-    internal NameScore(double fullNameScore, double namePartsScore, bool fullNameCounts, IReadOnlyList<PartMatch> parts)
+    internal NameScore(double fullNameScore, double namePartsScore, bool fullNameCounts, IReadOnlyList<PartMatch> parts, bool scoredFromListedName = false)
     {
         FullNameScore = fullNameScore;
         NamePartsScore = namePartsScore;
         FullNameCounts = fullNameCounts;
         Parts = parts;
+        ScoredFromListedName = scoredFromListedName;
     }
+
+    /// <summary>
+    /// True when the searched name has parts that are not on the listed name (an extra middle name,
+    /// for example) and the name-parts score was therefore taken from the listed name's side,
+    /// reduced for the extra parts (see <see cref="ScoringOptions.AllowExtraSearchedParts"/>).
+    /// </summary>
+    public bool ScoredFromListedName { get; }
 
     /// <summary>Whole-name Jaro-Winkler similarity on a 0-100 scale.</summary>
     public double FullNameScore { get; }
@@ -111,7 +119,7 @@ public sealed class NameScorer
         }
 
         var full = JaroWinkler.Similarity(query.Joined, listed.Joined, _options.PrefixBoostThreshold);
-        var (partsScore, parts) = ScoreParts(query, listed);
+        var (partsScore, parts, fromListed) = ScoreParts(query, listed);
 
         // A shared first name gives two different people a high whole-name score
         // ("JOHN SMITH" vs "JOHN NUMBI"), so by default the whole-name score only
@@ -119,10 +127,10 @@ public sealed class NameScorer
         var fullNameCounts = !_options.RequireAllPartsForFullName
             || parts.All(p => p.Score >= _options.MinPartScoreForFullName);
 
-        return new NameScore(Round(full), Round(partsScore), fullNameCounts, parts);
+        return new NameScore(Round(full), Round(partsScore), fullNameCounts, parts, fromListed);
     }
 
-    private (double Score, IReadOnlyList<PartMatch> Parts) ScoreParts(NameTokens query, NameTokens listed)
+    private (double Score, IReadOnlyList<PartMatch> Parts, bool FromListed) ScoreParts(NameTokens query, NameTokens listed)
     {
         // Score every pair, then pair parts greedily from the best pair down,
         // so each listed part is used at most once.
@@ -144,6 +152,7 @@ public sealed class NameScorer
 
         var assigned = new PartMatch?[query.Count];
         var usedListed = new bool[listed.Count];
+        double listedWeighted = 0;
         foreach (var pair in pairs)
         {
             if (assigned[pair.Q] is not null || usedListed[pair.L])
@@ -153,6 +162,7 @@ public sealed class NameScorer
 
             assigned[pair.Q] = new PartMatch(query.Tokens[pair.Q], listed.Tokens[pair.L], pair.Similarity, pair.SoundsAlike, pair.Score);
             usedListed[pair.L] = true;
+            listedWeighted += pair.Score * listed.Tokens[pair.L].Length;
         }
 
         var parts = new PartMatch[query.Count];
@@ -180,8 +190,33 @@ public sealed class NameScorer
 
         var coverage = coveredChars / listed.TotalLength;
         var score = composite * ((1 - _options.CoverageWeight) + (_options.CoverageWeight * coverage));
-        return (score, parts);
+
+        // A customer often gives a fuller name than the list has ("Ayman James al-Zawahiri").
+        // Weighting by the searched parts counts the extra part as a miss, so also score from the
+        // listed name's side, reduced by the share of searched letters that found no partner.
+        // Only when the search has more parts than a listed name of two or more parts, so a
+        // two-part search is never matched on one shared part.
+        if (_options.AllowExtraSearchedParts && listed.Count >= 2 && query.Count > listed.Count)
+        {
+            double unpaired = 0;
+            for (var q = 0; q < query.Count; q++)
+            {
+                if (assigned[q] is null)
+                {
+                    unpaired += query.Tokens[q].Length;
+                }
+            }
+
+            var fromListed = (listedWeighted / listed.TotalLength) * (1 - (_options.ExtraPartPenalty * unpaired / totalWeight));
+            if (fromListed > score)
+            {
+                return (fromListed, parts, true);
+            }
+        }
+
+        return (score, parts, false);
     }
+
 
     private readonly struct Pair
     {
@@ -214,6 +249,7 @@ public sealed class ScoringOptions
     private double _prefixBoostThreshold = 0.7;
     private double _coverageWeight = 0.05;
     private double _minPartScoreForFullName = 0.7;
+    private double _extraPartPenalty = 0.1;
 
     /// <summary>
     /// Jaro score (0-1) above which the Jaro-Winkler prefix bonus applies. Winkler's original
@@ -242,6 +278,26 @@ public sealed class ScoringOptions
     /// Set false to always report the higher of the two techniques, as OFAC's FAQ 249 describes.
     /// </summary>
     public bool RequireAllPartsForFullName { get; set; } = true;
+
+    /// <summary>
+    /// When true (default), a searched name with more parts than a listed name of two or more parts
+    /// (an extra middle name, for example) is also scored from the listed name's side: how well each
+    /// listed part was matched, weighted by its length, reduced by <see cref="ExtraPartPenalty"/> times the share of searched letters
+    /// in parts with no partner. Set false for the behaviour of version 0.1.2 and earlier.
+    /// </summary>
+    public bool AllowExtraSearchedParts { get; set; } = true;
+
+    /// <summary>
+    /// Used by <see cref="AllowExtraSearchedParts"/>: how much each letter of a searched part with no
+    /// listed partner reduces the score taken from the listed name's side, relative to a letter that
+    /// failed to match (0-1). 0 ignores extra parts entirely; 1 counts them as fully missed. Default 0.1,
+    /// chosen on the development set by the rule in docs/evaluation-protocol.md.
+    /// </summary>
+    public double ExtraPartPenalty
+    {
+        get => _extraPartPenalty;
+        set => _extraPartPenalty = Guard.InRange(value, 0, 1, nameof(value));
+    }
 
     /// <summary>Minimum part score (0-1) used by <see cref="RequireAllPartsForFullName"/>. Default 0.7.</summary>
     public double MinPartScoreForFullName

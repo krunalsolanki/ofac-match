@@ -69,7 +69,7 @@ claude mcp add ofac-match -- dnx OfacMatch.Mcp --yes
 
 Don't add this package to a project with **Manage NuGet Packages** or `dotnet add package`. It is a .NET tool that your MCP client runs, not a library, so NuGet rejects it with "has multiple package types, which is not supported". For the screening library, use the [OfacMatch](https://www.nuget.org/packages/OfacMatch) package.
 
-Pin a version with `OfacMatch.Mcp@0.1.2`.
+Pin a version with `OfacMatch.Mcp@2.0.0`.
 
 **Windows:** `dnx` is installed as `dnx.cmd`. If your client reports that it cannot find `dnx`, use `"command": "dnx.cmd"`, or `"command": "cmd"` with `"args": ["/c", "dnx", "OfacMatch.Mcp", "--yes"]`.
 

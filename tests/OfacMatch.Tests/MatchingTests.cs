@@ -111,4 +111,26 @@ public class MatchingTests
         Assert.True(strict.Score < 85, $"strict score {strict.Score}");
         Assert.Equal(Math.Max(ofacStyle.FullNameScore, ofacStyle.NamePartsScore), ofacStyle.Score);
     }
+
+    [Fact]
+    public void Scorer_tolerates_an_extra_middle_name_in_the_search()
+    {
+        var score = new NameScorer().Score("Ayman James Al Zawahiri", "Ayman Al Zawahiri");
+        var before = new NameScorer(new ScoringOptions { AllowExtraSearchedParts = false }).Score("Ayman James Al Zawahiri", "Ayman Al Zawahiri");
+
+        Assert.True(score.ScoredFromListedName);
+        Assert.True(score.Score >= 85, $"score {score.Score}");
+        Assert.True(before.Score < 85, $"score without the rule {before.Score}");
+    }
+
+    [Theory]
+    [InlineData("John Tiger", "Tiger")]
+    [InlineData("Ayman Smith", "Ayman Al Zawahiri")]
+    public void Extra_part_rule_does_not_match_on_one_shared_part(string searched, string listed)
+    {
+        var score = new NameScorer().Score(searched, listed);
+
+        Assert.False(score.ScoredFromListedName);
+        Assert.True(score.Score < 85, $"score {score.Score}");
+    }
 }

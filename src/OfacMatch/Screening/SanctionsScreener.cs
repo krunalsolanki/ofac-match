@@ -182,7 +182,7 @@ public sealed class ScreeningMatch
         var sb = new StringBuilder();
         sb.AppendLine($"Score {Score:0.0} via {NameScore.Technique} against {NameKind} name \"{MatchedName}\"");
         sb.AppendLine($"  Entry {Entry.Id}: {Entry.Name} ({Entry.Type}; programs: {string.Join(", ", Entry.Programs)})");
-        sb.AppendLine($"  Full-name score {NameScore.FullNameScore:0.0}{(NameScore.FullNameCounts ? string.Empty : " (not counted: a name part has no close partner)")}; name-parts score {NameScore.NamePartsScore:0.0}");
+        sb.AppendLine($"  Full-name score {NameScore.FullNameScore:0.0}{(NameScore.FullNameCounts ? string.Empty : " (not counted: a name part has no close partner)")}; name-parts score {NameScore.NamePartsScore:0.0}{(NameScore.ScoredFromListedName ? " (scored from the listed name: the search has parts not on the list)" : string.Empty)}");
         foreach (var part in NameScore.Parts)
         {
             sb.AppendLine(part.ListedPart is null

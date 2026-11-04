@@ -15,9 +15,9 @@ authors:
   - family-names: Solanki
     given-names: Krunal
     orcid: "https://orcid.org/0009-0008-2350-8196"
-version: 0.1.2
+version: 2.0.0
 doi: 10.5281/zenodo.23926803
-date-released: 2026-11-03
+date-released: 2026-11-04
 license: Apache-2.0
 repository-code: "https://github.com/krunalsolanki/ofac-match"
 url: "https://krunalsolanki.github.io/ofac-match/"

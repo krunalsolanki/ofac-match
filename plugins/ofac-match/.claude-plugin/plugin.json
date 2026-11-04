@@ -1,7 +1,7 @@
 {
   "name": "ofac-match",
   "displayName": "OfacMatch",
-  "version": "0.1.2",
+  "version": "2.0.0",
   "description": "Screen names against the OFAC SDN sanctions list and explain every potential match. Runs locally; names never leave your computer.",
   "author": {
     "name": "Krunal Solanki",
@@ -18,7 +18,7 @@
   "mcpServers": {
     "ofac-match": {
       "command": "dnx",
-      "args": ["OfacMatch.Mcp@0.1.2", "--yes"]
+      "args": ["OfacMatch.Mcp@2.0.0", "--yes"]
     }
   }
 }

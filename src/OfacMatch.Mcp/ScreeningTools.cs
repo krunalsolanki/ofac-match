@@ -116,7 +116,8 @@ public sealed class ScreeningTools
             score.FullNameScore,
             score.NamePartsScore,
             score.FullNameCounts,
-            score.Parts.Select(ToDto).ToList());
+            score.Parts.Select(ToDto).ToList(),
+            score.ScoredFromListedName);
     }
 
     [McpServerTool(Name = "get_list_info", Title = "SDN list status", ReadOnly = true, Idempotent = true)]
@@ -251,7 +252,7 @@ public sealed record EntryDetails(
 
 public sealed record AliasDto(string Kind, string Name);
 
-public sealed record CompareResult(double Score, string Technique, double FullNameScore, double NamePartsScore, bool FullNameCounts, IReadOnlyList<PartDto> Parts);
+public sealed record CompareResult(double Score, string Technique, double FullNameScore, double NamePartsScore, bool FullNameCounts, IReadOnlyList<PartDto> Parts, bool ScoredFromListedName = false);
 
 public sealed record PartDto(string QueryPart, string? MatchedPart, double Similarity, bool SoundsAlike, double Score);
 

@@ -15,6 +15,13 @@ internal enum Variation
     JoinedParticle,
     DroppedMiddleName,
     CompanySuffixChanged,
+
+    // Harder variations, generated separately so the cases above stay exactly as published.
+    FirstLetterError,
+    TwoTypos,
+    Nickname,
+    FirstNameInitial,
+    ExtraMiddleName,
 }
 
 internal sealed class TestCase
@@ -37,6 +44,25 @@ internal sealed class TestCase
     public string Query { get; }
 
     public Variation Variation { get; }
+
+    public bool IsHarder => Variation >= Variation.FirstLetterError;
+}
+
+/// <summary>First names and surnames used to build ordinary names that are not on the list.</summary>
+internal sealed class NameVocabulary
+{
+    public NameVocabulary(string label, string[] firstNames, string[] surnames)
+    {
+        Label = label;
+        FirstNames = firstNames;
+        Surnames = surnames;
+    }
+
+    public string Label { get; }
+
+    public string[] FirstNames { get; }
+
+    public string[] Surnames { get; }
 }
 
 /// <summary>Generates realistic name variations, the way names drift between documents, systems and alphabets.</summary>
@@ -75,6 +101,33 @@ internal static class Variations
         "Santos", "O'Brien", "Murphy",
     };
 
+    /// <summary>The names used during development (and in the published evaluation).</summary>
+    public static readonly NameVocabulary Development = new("development", FirstNames, Surnames);
+
+    /// <summary>
+    /// Names never used during development, from the same mix of cultures, so the held-out test
+    /// measures ordinary names the method was not adjusted to.
+    /// </summary>
+    public static readonly NameVocabulary HeldOut = new(
+        "held-out",
+        new[]
+        {
+            "Henry", "Barbara", "Charles", "Susan", "Joseph", "Jessica", "Daniel", "Sarah", "Matthew", "Karen",
+            "Miguel", "Lucia", "Pedro", "Isabel", "Diego", "Valentina", "Andres", "Gabriela", "Ming", "Xiu", "Kenji",
+            "Haruka", "Seojun", "Hana", "Vikram", "Deepa", "Rohan", "Kavya", "Natalia", "Sergei", "Anastasia", "Yusuf",
+            "Leila", "Karim", "Zainab", "Kofi", "Abena", "Emeka", "Chiamaka", "Louis", "Claire", "Klaus", "Heidi",
+            "Francesca", "Luca", "Erik", "Astrid", "Minh", "Linh", "Tomasz",
+        },
+        new[]
+        {
+            "Clark", "Lewis", "Walker", "Hall", "Allen", "Young", "King", "Wright", "Scott", "Green", "Perez",
+            "Sanchez", "Ramirez", "Torres", "Flores", "Rivera", "Gomez", "Diaz", "Choi", "Jung", "Huang", "Zhao",
+            "Wu", "Yamamoto", "Suzuki", "Nakamura", "Reddy", "Iyer", "Mehta", "Joshi", "Kuznetsov", "Popov",
+            "Volkova", "Wisniewski", "Novak", "Becker", "Fischer", "Weber", "Ferrari", "Romano", "Lefebvre",
+            "Laurent", "Adeyemi", "Owusu", "Boateng", "Hamdan", "Saleh", "Aziz", "Hussain", "Chowdhury", "Islam",
+            "Pham", "Le", "Pereira", "Oliveira", "Kelly", "Byrne",
+        });
+
     public static string Describe(Variation variation) => variation switch
     {
         Variation.Exact => "Exact name",
@@ -87,6 +140,11 @@ internal static class Variations
         Variation.JoinedParticle => "Particle joined (\"AL ZAWAHIRI\" → \"ALZAWAHIRI\")",
         Variation.DroppedMiddleName => "Middle name left out",
         Variation.CompanySuffixChanged => "Company suffix changed (LTD → LLC)",
+        Variation.FirstLetterError => "Wrong first letter (Kassim → Qassim)",
+        Variation.TwoTypos => "Two wrong letters",
+        Variation.Nickname => "Nickname or equivalent given name (Aleksandr → Sasha, Yusuf → Joseph)",
+        Variation.FirstNameInitial => "First name as an initial (\"A ZAWAHIRI\")",
+        Variation.ExtraMiddleName => "Extra middle name not on the list",
         _ => variation.ToString(),
     };
 
@@ -159,16 +217,199 @@ internal static class Variations
         }
     }
 
-    public static List<string> CommonNames(int count, Random random)
+    public static List<string> CommonNames(int count, Random random) => CommonNames(count, random, Development);
+
+    public static List<string> CommonNames(int count, Random random, NameVocabulary vocabulary)
     {
+        var first = vocabulary.FirstNames;
+        var last = vocabulary.Surnames;
         var names = new HashSet<string>();
-        var limit = Math.Min(count, FirstNames.Length * Surnames.Length);
+        var limit = Math.Min(count, first.Length * last.Length);
         while (names.Count < limit)
         {
-            names.Add($"{FirstNames[random.Next(FirstNames.Length)]} {Surnames[random.Next(Surnames.Length)]}");
+            names.Add($"{first[random.Next(first.Length)]} {last[random.Next(last.Length)]}");
         }
 
         return names.OrderBy(n => n, StringComparer.Ordinal).ToList();
+    }
+
+    /// <summary>
+    /// Ordinary names with three parts: half with a middle name ("Maria Wei Lopez"), half with two
+    /// surnames as is common in Spanish and Portuguese ("Maria Lopez Silva"). The extra-part rule
+    /// only applies to searches with more parts than a listed name, so it needs these to be measured.
+    /// </summary>
+    public static List<string> ThreePartNames(int count, Random random, NameVocabulary vocabulary)
+    {
+        var first = vocabulary.FirstNames;
+        var last = vocabulary.Surnames;
+        var names = new HashSet<string>();
+        while (names.Count < count)
+        {
+            var given = first[random.Next(first.Length)];
+            var surname = last[random.Next(last.Length)];
+            if (random.Next(2) == 0)
+            {
+                var middle = first[random.Next(first.Length)];
+                if (middle != given)
+                {
+                    names.Add($"{given} {middle} {surname}");
+                }
+            }
+            else
+            {
+                var second = last[random.Next(last.Length)];
+                if (second != surname)
+                {
+                    names.Add($"{given} {surname} {second}");
+                }
+            }
+        }
+
+        return names.OrderBy(n => n, StringComparer.Ordinal).ToList();
+    }
+
+    // Letters that are commonly confused at the start of a name, across transliterations.
+    private static readonly Dictionary<char, char> FirstLetterSwaps = new()
+    {
+        ['C'] = 'K', ['K'] = 'Q', ['Q'] = 'K', ['G'] = 'J', ['J'] = 'Y', ['Y'] = 'J', ['I'] = 'Y', ['E'] = 'A',
+        ['A'] = 'E', ['O'] = 'U', ['U'] = 'O', ['S'] = 'Z', ['Z'] = 'S', ['F'] = 'V', ['V'] = 'W', ['W'] = 'V',
+        ['B'] = 'P', ['P'] = 'B', ['D'] = 'T', ['T'] = 'D', ['M'] = 'N', ['N'] = 'M', ['L'] = 'R', ['R'] = 'L',
+        ['H'] = 'K', ['X'] = 'K',
+    };
+
+    // Given names as listed → a nickname or the same name in another language, as a customer may give it.
+    private static readonly Dictionary<string, string> Nicknames = new(StringComparer.Ordinal)
+    {
+        ["WILLIAM"] = "BILL", ["ROBERT"] = "BOB", ["RICHARD"] = "DICK", ["JAMES"] = "JIM", ["JOHN"] = "JACK",
+        ["MICHAEL"] = "MIKE", ["ALEXANDER"] = "ALEX", ["ALEKSANDR"] = "SASHA", ["ALEXANDR"] = "SASHA",
+        ["VLADIMIR"] = "VOVA", ["DMITRY"] = "DIMA", ["DMITRIY"] = "DIMA", ["DMITRII"] = "DIMA",
+        ["YEVGENIY"] = "ZHENYA", ["EVGENY"] = "ZHENYA", ["EVGENIY"] = "ZHENYA", ["NIKOLAY"] = "KOLYA",
+        ["NIKOLAI"] = "KOLYA", ["SERGEY"] = "SERYOZHA", ["SERGEI"] = "SERYOZHA", ["MIKHAIL"] = "MISHA",
+        ["IVAN"] = "VANYA", ["YURIY"] = "YURA", ["YURI"] = "YURA", ["ALEKSEY"] = "ALYOSHA", ["ALEXEY"] = "ALYOSHA",
+        ["PAVEL"] = "PASHA", ["VIKTOR"] = "VITYA", ["JOSE"] = "PEPE", ["FRANCISCO"] = "PACO",
+        ["ALEJANDRO"] = "ALEX", ["ANTONIO"] = "TONY", ["MANUEL"] = "MANOLO", ["JESUS"] = "CHUY",
+        ["IGNACIO"] = "NACHO", ["GUILLERMO"] = "MEMO", ["ENRIQUE"] = "KIKE", ["ROBERTO"] = "BETO",
+        ["ALBERTO"] = "BETO", ["EDUARDO"] = "LALO", ["RAFAEL"] = "RAFA", ["FERNANDO"] = "NANDO",
+        ["MOHAMMED"] = "MOHD", ["MOHAMMAD"] = "MOHD", ["MUHAMMAD"] = "MOHD", ["MOHAMED"] = "MOHD",
+        ["MUHAMMED"] = "MOHD", ["YUSUF"] = "JOSEPH", ["YOUSEF"] = "JOSEPH", ["IBRAHIM"] = "ABRAHAM",
+        ["MUSA"] = "MOSES", ["SULEIMAN"] = "SOLOMON", ["SULAYMAN"] = "SOLOMON", ["DAWOOD"] = "DAVID",
+        ["DAOUD"] = "DAVID", ["YAQUB"] = "JACOB", ["YAKUB"] = "JACOB",
+    };
+
+    /// <summary>
+    /// Variations that string similarity is expected to find hard. Uses its own random generator,
+    /// so adding them does not change the original cases.
+    /// </summary>
+    public static IEnumerable<TestCase> Harder(IEnumerable<SanctionsEntry> individuals, IEnumerable<SanctionsEntry> entities, SanctionsList list, int maxNicknames, Random random, ISet<int>? exclude = null)
+    {
+        foreach (var entry in individuals)
+        {
+            var tokens = NameNormalizer.Tokenize(NameNormalizer.ToNaturalOrder(entry.Name)).ToList();
+            var make = Maker(entry, random);
+            foreach (var c in HardSpelling(tokens, random, make))
+            {
+                yield return c;
+            }
+
+            if (tokens[0].Length >= 3 && !Particles.Contains(tokens[0]))
+            {
+                yield return make(Variation.FirstNameInitial, Replace(tokens, 0, tokens[0].Substring(0, 1)));
+            }
+
+            var extra = tokens.ToList();
+            extra.Insert(1, FirstNames[random.Next(FirstNames.Length)].ToUpperInvariant());
+            yield return make(Variation.ExtraMiddleName, string.Join(" ", extra));
+        }
+
+        foreach (var entry in entities)
+        {
+            var tokens = NameNormalizer.Tokenize(entry.Name).ToList();
+            foreach (var c in HardSpelling(tokens, random, Maker(entry, random)))
+            {
+                yield return c;
+            }
+        }
+
+        // Few sampled names have a known nickname, so these are drawn from the whole list.
+        var withNickname = new List<(SanctionsEntry Entry, List<string> Tokens, int Index)>();
+        foreach (var entry in list.Entries.Where(e => e.Type == EntryType.Individual && (exclude is null || !exclude.Contains(e.Id))).OrderBy(e => e.Id))
+        {
+            var tokens = NameNormalizer.Tokenize(NameNormalizer.ToNaturalOrder(entry.Name)).ToList();
+            var index = tokens.FindIndex(t => Nicknames.ContainsKey(t));
+            if (tokens.Count >= 2 && index >= 0 && index < tokens.Count - 1)
+            {
+                withNickname.Add((entry, tokens, index));
+            }
+        }
+
+        var picked = withNickname.Select(x => (Item: x, Key: random.Next())).OrderBy(x => x.Key).Take(maxNicknames).Select(x => x.Item).ToList();
+        foreach (var (entry, tokens, index) in picked)
+        {
+            yield return Maker(entry, random)(Variation.Nickname, Replace(tokens, index, Nicknames[tokens[index]]));
+        }
+    }
+
+    /// <summary>
+    /// Ordinary names that share a given name with a listed individual ("AYMAN SMITH"),
+    /// the near misses that make up much of a real review queue.
+    /// </summary>
+    public static List<string> NearMisses(IEnumerable<SanctionsEntry> individuals, int count, Random random, NameVocabulary? vocabulary = null)
+    {
+        var surnames = (vocabulary ?? Development).Surnames;
+        var given = individuals
+            .Select(e => NameNormalizer.Tokenize(NameNormalizer.ToNaturalOrder(e.Name)))
+            .Where(t => t.Count >= 2 && t[0].Length >= 3 && !Particles.Contains(t[0]))
+            .Select(t => t[0])
+            .Distinct()
+            .OrderBy(t => t, StringComparer.Ordinal)
+            .ToList();
+        var names = new HashSet<string>();
+        var limit = Math.Min(count, given.Count * surnames.Length);
+        while (names.Count < limit)
+        {
+            names.Add($"{given[random.Next(given.Count)]} {surnames[random.Next(surnames.Length)].ToUpperInvariant()}");
+        }
+
+        return names.OrderBy(n => n, StringComparer.Ordinal).ToList();
+    }
+
+    private static IEnumerable<TestCase> HardSpelling(List<string> tokens, Random random, Func<Variation, string, TestCase> make)
+    {
+        var first = Enumerable.Range(0, tokens.Count).Where(i => tokens[i].Length >= 3 && !Particles.Contains(tokens[i]) && !Suffixes.Contains(tokens[i])).ToList();
+        if (first.Count > 0)
+        {
+            var i = first[random.Next(first.Count)];
+            var word = tokens[i];
+            var letter = FirstLetterSwaps.TryGetValue(word[0], out var swap) ? swap : WrongLetter(word[0], random);
+            yield return make(Variation.FirstLetterError, Replace(tokens, i, letter + word.Substring(1)));
+        }
+
+        var typo = Enumerable.Range(0, tokens.Count).Where(i => tokens[i].Length >= 4 && !Suffixes.Contains(tokens[i])).ToList();
+        if (typo.Count >= 2)
+        {
+            var a = typo[random.Next(typo.Count)];
+            var b = typo.Where(i => i != a).ElementAt(random.Next(typo.Count - 1));
+            var changed = tokens.ToList();
+            changed[a] = Mistype(changed[a], 1 + random.Next(changed[a].Length - 1), random);
+            changed[b] = Mistype(changed[b], 1 + random.Next(changed[b].Length - 1), random);
+            yield return make(Variation.TwoTypos, string.Join(" ", changed));
+        }
+        else if (typo.Count == 1 && tokens[typo[0]].Length >= 6)
+        {
+            var word = tokens[typo[0]];
+            var p = 1 + random.Next(word.Length / 2 - 1);
+            var q = word.Length / 2 + random.Next(word.Length - word.Length / 2);
+            yield return make(Variation.TwoTypos, Replace(tokens, typo[0], Mistype(Mistype(word, p, random), q, random)));
+        }
+    }
+
+    private static string Mistype(string word, int position, Random random) =>
+        word.Substring(0, position) + WrongLetter(word[position], random) + word.Substring(position + 1);
+
+    private static char WrongLetter(char current, Random random)
+    {
+        var replacement = (char)('A' + random.Next(26));
+        return replacement == current ? (replacement == 'Z' ? 'A' : (char)(replacement + 1)) : replacement;
     }
 
     private static Func<Variation, string, TestCase> Maker(SanctionsEntry entry, Random random) =>
