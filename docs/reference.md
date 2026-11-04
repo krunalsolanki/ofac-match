@@ -73,8 +73,10 @@ Flags never remove a match. They give the reviewer facts to clear or escalate it
 | `MinPartScoreForFullName` | 0.70 | Part score needed for the guard above. |
 | `CoverageWeight` | 0.05 | Share of the name-parts score that depends on how much of the listed name was covered. |
 | `PrefixBoostThreshold` | 0.70 | Jaro score above which the Jaro-Winkler prefix bonus applies. 0 = always apply it. |
+| `AllowExtraSearchedParts` | `true` | When the search has more parts than a listed name of at least two parts (an extra middle name), also score from the listed name's side. `false` = the behaviour of version 0.1.2. See [how scoring works](how-scoring-works.md#4-technique-2-name-parts). |
+| `ExtraPartPenalty` | 0.10 | For the rule above: how much each searched letter with no listed partner reduces the score, relative to a letter that failed to match. 0 ignores extra parts; 1 counts them as fully missed. Chosen on the development set ([protocol](evaluation-protocol.md)). |
 
-All four numbers must be between 0 and 1.
+All five numbers must be between 0 and 1.
 
 ### `ScreeningMatch`
 
@@ -83,7 +85,7 @@ All four numbers must be between 0 and 1.
 | `Score` | 0–100. |
 | `Entry` | The listed entry. |
 | `MatchedName`, `NameKind` | The name or alias that matched, and whether it is primary, aka, fka or nka. |
-| `NameScore` | Evidence: `FullNameScore`, `NamePartsScore`, `FullNameCounts`, `Technique`, and `Parts` (each `PartMatch` with `QueryPart`, `ListedPart`, `Similarity`, `SoundsAlike`, `Score`). |
+| `NameScore` | Evidence: `FullNameScore`, `NamePartsScore`, `FullNameCounts`, `ScoredFromListedName` (true when extra searched parts were allowed for), `Technique`, and `Parts` (each `PartMatch` with `QueryPart`, `ListedPart`, `Similarity`, `SoundsAlike`, `Score`). |
 | `DateOfBirthConflict`, `CountryConflict` | Flags described above. |
 | `Explain()` | Plain-text explanation for an analyst or the audit file. |
 

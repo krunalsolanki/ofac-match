@@ -7,8 +7,10 @@ abstract: >-
   every potential match, combining whole-name and name-part comparison
   (Jaro-Winkler similarity and Soundex) on OFAC's 0-100 scale. It flags
   date-of-birth and country conflicts, runs locally, and is evaluated on the
-  real SDN list: at a threshold of 85 it finds 99.8% of 4,255 realistic
-  variations of listed names. It is available as a .NET library, an MCP
+  real SDN list with a held-out test on names not used during development:
+  at a threshold of 85 it finds all 4,235 realistic variations of listed
+  names and 99.6% of 2,160 harder ones, and it is compared with eight
+  standard name-matching methods. It is available as a .NET library, an MCP
   server for AI assistants, and a browser-based demonstration.
 type: software
 authors:

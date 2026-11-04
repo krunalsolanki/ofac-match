@@ -6,7 +6,7 @@ OfacMatch is meant for that second group, and for .NET developers who need scree
 
 ## Who it helps, and how
 
-**Compliance teams** get an explanation with every alert: which listed name or alias it matched, and how each part of the name paired up. That makes alerts quicker to clear and easier to document. The [evaluation](evaluation.md) also gives you real numbers to pick a threshold from, instead of a default nobody can justify. One example from those numbers: a small rule that stops a shared first name from carrying the whole score cut alerts on ordinary names from 63.2% to 47.9% at a threshold of 85, while still finding 99.8% of the tested variations.
+**Compliance teams** get an explanation with every alert: which listed name or alias it matched, and how each part of the name paired up. That makes alerts quicker to clear and easier to document. The [held-out evaluation](evaluation-heldout.md) also gives you real numbers to pick a threshold from, instead of a default nobody can justify. One example from those numbers: a small rule that stops a shared first name from carrying the whole score cut alerts on ordinary names from 53.0% to 37.5% at a threshold of 85, while still finding every tested variation. Against eight standard matching methods, OfacMatch raised clearly fewer alerts on names that share a first name with a listed person, while one simpler method found slightly more of the hardest variations; the [comparison](baselines-heldout.md) shows both.
 
 **Developers** get one package with no dependencies that runs on .NET Framework 4.7.2+ as well as modern .NET, which matters because a lot of lending and title software still runs on .NET Framework. Downloading and refreshing the official list is one call, a search takes roughly 25–35 ms of CPU against the whole list, and the screener is safe to share across threads for batch jobs. The building blocks (Jaro-Winkler, Soundex, the name normalizer) are public if you need to do something different.
 
@@ -22,10 +22,10 @@ OfacMatch is meant for that second group, and for .NET developers who need scree
 | Commercial screening platforms and APIs | Many lists, case management, support | Paid per search or seat; customer data goes to a third party; scoring is often not disclosed |
 | [OpenSanctions](https://www.opensanctions.org/) | Broad data across many countries, plus matching | A separate service to run or call; check its licence for business use |
 | [Sanctions.Net](https://github.com/IsraelIyonsi/Sanctions.NET) | .NET library covering OFAC, UN and EU lists | Different focus; I haven't benchmarked it |
-| **OfacMatch** | Explained scores, published evaluation, follows OFAC's described method, runs in-process on old and new .NET | OFAC's SDN list only for now; no case management; see [what it doesn't cover](compliance-notes.md#what-ofacmatch-does-not-cover) |
+| **OfacMatch** | Explained scores, published evaluation with a held-out test and comparison with standard methods, follows OFAC's described method, runs in-process on old and new .NET | OFAC's SDN list only for now; no case management; see [what it doesn't cover](compliance-notes.md#what-ofacmatch-does-not-cover) |
 
 OfacMatch is a component, not a compliance platform. It fits best when you want OFAC name screening you can see into and test, inside your own .NET application.
 
 ## What's next
 
-I'm letting the evaluation decide what to work on: each release goes after the weakest measured area. Right now that's typos at the start of company endings like "LTMITED", and the alert rate on common names, which giving rare words more weight should help with. The full list is in the [README](../README.md#whats-next).
+I'm letting the evaluation decide what to work on: each release goes after the weakest measured area. Version 2.0 went after extra middle names in the search. Next are nicknames and equivalent names, which need an independent source to be tested fairly, and the alert rate on common names, which giving rare words more weight should help with. The full list is in the [README](../README.md#whats-next).

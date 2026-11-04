@@ -12,7 +12,7 @@ flowchart LR
     B2 --> F
     F -- no --> X[Skip]
     F -- yes --> T1[Technique 1:<br/>whole name<br/>Jaro-Winkler]
-    F -- yes --> T2[Technique 2:<br/>name parts<br/>Jaro-Winkler + Soundex]
+    F -- yes --> T2[Technique 2:<br/>name parts<br/>Jaro-Winkler + Soundex,<br/>allowing extra searched parts]
     T1 --> C{Every part has<br/>a plausible partner?}
     T2 --> S[Score = higher allowed technique]
     C -- yes --> S
@@ -52,6 +52,11 @@ The normalized names are joined with spaces and compared with [Jaro-Winkler simi
 3. Parts are paired greedily from the best pair down, and each listed part is used once.
 4. The composite is the average of the paired scores, **weighted by the length of each searched part**, so "AL" counts less than "ZAWAHIRI". A searched part with no partner scores 0.
 5. A coverage nudge: 95% of the score comes from the composite and 5% scales with how much of the listed name was covered. A full match outranks a partial one, and a partial search still scores high.
+6. **Extra searched parts** (since version 2.0). Customers often give a fuller name than the list has. Step 4 counts a searched part with no partner as 0, so "Ayman James Al Zawahiri" would score only 75 against "AL ZAWAHIRI, Ayman". When the search has more parts than a listed name of at least two parts, OfacMatch also scores from the listed name's side:
+   - the average of the paired scores, **weighted by the length of each listed part**, so it measures how well the whole listed name was found;
+   - reduced by `ExtraPartPenalty` (0.1) times the share of searched letters in parts with no partner.
+
+   The name-parts score is the higher of the two, and `match.Explain()` says when the listed side was used. A two-part search is never scored this way, so one shared part ("John Tiger" against a listed "Tiger") can't produce a high score.
 
 ## 5. Combining the two
 
@@ -61,7 +66,7 @@ OFAC's FAQ says its tool reports the higher of the two techniques. OfacMatch doe
 
 Without the guard, "JOHN SMITH" scores 88 against "JOHN NUMBI" because the shared first name gives the whole strings a long common prefix. With the guard, that pair scores 70.4 and is not reported at 85.
 
-The [evaluation](evaluation.md) measures what the guard costs and saves on the real list: at a threshold of 85 it reduces alerts on ordinary names from 63.2% to 47.9%, while recall on listed parties falls from 100.0% to 99.8%. To turn it off, set `ScoringOptions.RequireAllPartsForFullName = false`.
+The [held-out evaluation](evaluation-heldout.md) measures what the guard saves on the real list: at a threshold of 85 it reduces alerts on ordinary two-part names from 53.0% to 37.5%, and on three-part names from 30.5% to 10.3%, while recall on the tested variations stays at 100.0%. To turn it off, set `ScoringOptions.RequireAllPartsForFullName = false`.
 
 ## Worked example
 
@@ -85,6 +90,23 @@ Technique 2:
 - Both parts score above 0.70, so the whole-name score may count, but 84.5 < 95.8.
 
 **Final score: 95.8, by name parts.** This is exactly what `match.Explain()` prints.
+
+## Worked example: an extra middle name
+
+Searched: **Ayman James Al Zawahiri**. Listed: **AL ZAWAHIRI, Dr. Ayman**.
+
+| Searched part | Paired with | Part score |
+|---|---|---|
+| AYMAN (5 letters) | AYMAN | 1.000 |
+| JAMES (5 letters) | (no partner) | 0 |
+| AL (2 letters) | AL | 1.000 |
+| ZAWAHIRI (8 letters) | ZAWAHIRI | 1.000 |
+
+- From the searched side (step 4): (5 + 0 + 2 + 8) / 20 = 0.75, then the coverage nudge: 0.75 × (0.95 + 0.05 × 15/15) = 0.750.
+- From the listed side (step 6): every listed part is matched, so (5 + 2 + 8) / 15 = 1.000. JAMES is 5 of the 20 searched letters, so the score is 1.000 × (1 − 0.1 × 5/20) = **0.975**.
+- JAMES has no partner, so the guard stops the whole-name score from counting.
+
+**Final score: 97.5, by name parts, scored from the listed name.** In version 0.1.2 this pair scored 75.0, and the entry's best score was 84.3 through an alias, just below a threshold of 85.
 
 ## What scores do not tell you
 

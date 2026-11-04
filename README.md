@@ -23,9 +23,9 @@ It handles the messy parts of real names: accents, `LAST, First` ordering, apost
 
 It has no dependencies, runs inside your own process (names never leave your systems), and works on modern .NET as well as .NET Framework 4.7.2+.
 
-I measured it on the real list rather than guessing: it finds 99.8% of 4,255 realistic misspellings and variations of listed names at a threshold of 85. The [evaluation](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation.md) has the details, including where it still misses.
+I measured it on the real list rather than guessing, on names it was never tuned on: at a threshold of 85 it finds all 4,235 realistic variations of listed names in a held-out test, and 99.6% of 2,160 harder ones such as a wrong first letter, a nickname or an extra middle name. It is also compared with eight standard name-matching methods. The [results](#results-on-the-real-sdn-list) below have the details, including where a simpler method does better.
 
-This is an early release (0.1). Feedback, bug reports and name variations that score badly are very welcome.
+Version 2.0 changes how a searched name with extra parts is scored; see the [changelog](https://github.com/krunalsolanki/ofac-match/blob/main/CHANGELOG.md). Feedback, bug reports and name variations that score badly are very welcome.
 
 > OfacMatch helps you screen; it doesn't make compliance decisions and isn't legal advice. A score says how alike two names are written, not whether two records are the same person. Pick your threshold from your own risk assessment and have someone review every potential match. More in [Using OfacMatch responsibly](https://github.com/krunalsolanki/ofac-match/blob/main/docs/compliance-notes.md).
 
@@ -111,23 +111,27 @@ dotnet run --project samples/OfacMatch.Cli -- "Aymen Zawahri" --min 85 --yob 195
 
 ## Results on the real SDN list
 
-From the [evaluation](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation.md): 600 listed parties (400 individuals, 200 companies) and 4,255 realistic variations of their names, plus 2,000 ordinary names, against the SDN list published 27 October 2026.
+OfacMatch was improved on a development set of names, then frozen and tested once on a separate held-out set: 600 other listed parties (400 individuals, 200 companies) and 3,000 ordinary names from a vocabulary never used during development, against the SDN list published 27 October 2026. The [evaluation protocol](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation-protocol.md) explains the rules.
 
-| Threshold | Listed parties found | Ordinary names that alert |
-|---|---:|---:|
-| 80 | 99.9% | 83.4% |
-| 85 | 99.8% | 47.9% |
-| 90 | 99.8% | 15.9% |
-| 95 | 99.5% | 3.8% |
+| Threshold | Variations found (4,235) | Harder variations found (2,160) | Two-part ordinary names that alert | Three-part ordinary names that alert |
+|---|---:|---:|---:|---:|
+| 80 | 100.0% | 99.9% | 75.7% | 51.0% |
+| 85 | 100.0% | 99.6% | 37.5% | 10.3% |
+| 90 | 100.0% | 98.4% | 10.2% | 2.2% |
+| 95 | 99.6% | 83.4% | 2.1% | 0.0% |
 
-Variations tested: exact, surname first, lower case without punctuation, one wrong letter, two letters swapped, one letter missing, different transliteration, joined particles ("ALZAWAHIRI"), middle name left out, and changed company suffix.
+- **Variations:** exact, surname first, lower case without punctuation, one wrong letter, two letters swapped, one letter missing, different transliteration, joined particles ("ALZAWAHIRI"), middle name left out, and changed company suffix.
+- **Harder variations:** wrong first letter ("Qassim" for "Kassim"), two wrong letters, a nickname or the same name in another language ("Sasha" for "Aleksandr"), first name as an initial, and an extra middle name that is not on the list.
 
-Two things surprised me in these numbers. First, screening on a name alone alerts a lot: about half of ordinary two-part names look like *something* on the list, and a few are spelled exactly like a listed person. Date of birth and country are what let a reviewer clear those quickly. Second, moving the threshold from 85 to 90 cut alerts by two thirds without losing any of these variations, so the threshold deserves a deliberate choice rather than a default.
+**Compared with other methods.** The same cases were screened with eight standard methods, including Levenshtein, Jaro-Winkler, RapidFuzz-style token ratios and trigram TF-IDF ([full comparison](https://github.com/krunalsolanki/ofac-match/blob/main/docs/baselines-heldout.md)). To compare them fairly, each method gets the threshold at which the same share of ordinary names alerts. The strongest simple method, a token set ratio, found slightly more of the harder variations than OfacMatch (98.9% against 96.7% when 5% of ordinary names alert). OfacMatch raised clearly fewer alerts on names that share a first name with a listed person, such as "Ayman Smith" (11.9% against 16.4%), and it explains every score. For a review team, fewer alerts and a reason for each one is usually worth more than the last two points of recall, but that trade-off is yours to make.
 
-You can re-run it yourself:
+Three things stand out in these numbers. Screening on a name alone alerts a lot: at 85, more than a third of ordinary two-part names look like *something* on the list. Date of birth and country are what let a reviewer clear those quickly. Moving the threshold from 85 to 90 cut those alerts by about three quarters while still finding every variation and 98.4% of the harder ones, so the threshold deserves a deliberate choice rather than a default. And since 2.0, a listed two-part name inside a longer searched name scores high, so three-part names alert more often at 85 than in 0.1.2 (10.3% against 3.3%).
+
+You can re-run it yourself on the development set:
 
 ```bash
 dotnet run -c Release --project eval/OfacMatch.Evaluation -- --data ofac-data --out docs/evaluation.md
+dotnet run -c Release --project eval/OfacMatch.Evaluation -- --data ofac-data --baselines --out docs/baselines.md
 ```
 
 ## Documentation
@@ -138,7 +142,9 @@ dotnet run -c Release --project eval/OfacMatch.Evaluation -- --data ofac-data --
 | [How scoring works](https://github.com/krunalsolanki/ofac-match/blob/main/docs/how-scoring-works.md) | Every step, with a worked example |
 | [API and configuration reference](https://github.com/krunalsolanki/ofac-match/blob/main/docs/reference.md) | Types, options and defaults |
 | [Using OfacMatch responsibly](https://github.com/krunalsolanki/ofac-match/blob/main/docs/compliance-notes.md) | Thresholds, review, record keeping, limits |
-| [Evaluation](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation.md) | Full results by variation and setting |
+| [Evaluation protocol](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation-protocol.md) | How the development and held-out sets are kept apart, and how settings were chosen |
+| [Held-out results](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation-heldout.md) and [comparison](https://github.com/krunalsolanki/ofac-match/blob/main/docs/baselines-heldout.md) | Results on names never used during development, and against eight standard methods |
+| [Development results](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation.md), [comparison](https://github.com/krunalsolanki/ofac-match/blob/main/docs/baselines.md) and [tuning](https://github.com/krunalsolanki/ofac-match/blob/main/docs/tuning.md) | The set used while improving the method |
 | [MCP server](https://github.com/krunalsolanki/ofac-match/blob/main/src/OfacMatch.Mcp/README.md) | Using OfacMatch from AI assistants |
 
 ## What's next
@@ -146,6 +152,9 @@ dotnet run -c Release --project eval/OfacMatch.Evaluation -- --data ofac-data --
 Things I'd like to work on, roughly in order:
 
 - [x] Evaluation on the real list
+- [x] Comparison with standard methods, and a held-out test
+- [x] Extra middle names in the search (2.0)
+- [ ] Nicknames and equivalent names (Sasha, Aleksandr), from an independent source so they can be tested fairly
 - [ ] Give rare words more weight ("CUBA" should count more than "BANK"), to cut alerts on common names
 - [ ] Catch typos at the start of company endings ("LTMITED")
 - [ ] Support OFAC's Consolidated (non-SDN) list and the Advanced XML format
