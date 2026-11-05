@@ -3,6 +3,8 @@
 [![Software DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23926803.svg)](https://doi.org/10.5281/zenodo.23926803)
 [![Paper DOI](https://img.shields.io/badge/paper-10.5281%2Fzenodo.23930926-blue)](https://doi.org/10.5281/zenodo.23930926)
 
+[![OFAC Match MCP server](https://mcprush.com/badge/ofac-match-mcp/card.svg)](https://mcprush.com/to/ofac-match-mcp?ref=badge)
+
 OFAC sanctions name screening for .NET that tells you *why* a name matched.
 
 ![OfacMatch screening a misspelled name, flagging a birth-year conflict and clearing a common name](https://raw.githubusercontent.com/krunalsolanki/ofac-match/main/docs/images/demo.gif)
