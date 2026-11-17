@@ -41,6 +41,15 @@
             link.remove();
             setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
         };
+        // Lets the page update during a long screening. Unlike a timer, a message is not
+        // slowed down to once a second when the tab is in the background.
+        window.ofacMatchYield = function () {
+            return new Promise(function (resolve) {
+                const channel = new MessageChannel();
+                channel.port1.onmessage = function () { resolve(); };
+                channel.port2.postMessage(0);
+            });
+        };
     </script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
 </body>

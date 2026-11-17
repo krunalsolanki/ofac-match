@@ -23,10 +23,10 @@
             Minimum score
             <input type="number" @bind="_minScore" min="0" max="100" step="1" disabled="@_busy" />
         </label>
-        <label>
-            Type when not given
+        <label title="Used for rows without a Type. Individual compares people only, Entity companies only. Choose All types if you're not sure.">
+            Compare against <span class="optional">rows with no Type</span>
             <select @bind="_defaultType" disabled="@_busy">
-                <option value="">All</option>
+                <option value="">All types</option>
                 @foreach (var type in Enum.GetValues<EntryType>())
                 {
                     <option value="@type">@type</option>
@@ -44,6 +44,7 @@
     </div>
 
     <p class="examples">
+        <button type="button" @onclick="TrySampleAsync" disabled="@_busy">Try a sample list</button>
         <button type="button" @onclick="DownloadTemplateAsync">Download a template</button>
     </p>
 
@@ -80,7 +81,7 @@
         <div class="summary">
             <div><strong>@_results.Count.ToString("N0")</strong> screened</div>
             <div class="need-review"><strong>@Count(BatchStatus.Match)</strong> potential match@(Count(BatchStatus.Match) == 1 ? "" : "es")</div>
-            <div class="conflicts"><strong>@Count(BatchStatus.MatchWithConflicts)</strong> with conflicts on every match</div>
+            <div class="conflicts"><strong>@Count(BatchStatus.MatchWithConflicts)</strong> likely a different person</div>
             <div class="ok"><strong>@Count(BatchStatus.NoMatch)</strong> no match</div>
             @if (Count(BatchStatus.Error) > 0)
             {
@@ -89,7 +90,8 @@
         </div>
         <p class="meta">
             Minimum score @_usedMinScore. @(_stopped ? "Stopped early. " : "")Took @_elapsed.TotalSeconds.ToString("0.0") s.
-            Matches with conflicts usually belong to a different person, but a person must still review them.
+            “Likely a different person” means the name is similar, but the year of birth differs from every listed
+            match. A person must still check these: the list itself can be wrong or incomplete.
         </p>
 
         <p class="examples">
@@ -175,7 +177,17 @@
     // (for example a year of birth that was not understood).
     private IEnumerable<BatchResult> Shown => _results is null
         ? Enumerable.Empty<BatchResult>()
-        : _onlyReview ? _results.Where(r => r.Status != BatchStatus.NoMatch || r.Note is not null) : _results;
+        : (_onlyReview ? _results.Where(r => r.Status != BatchStatus.NoMatch || r.Note is not null) : _results)
+            .OrderBy(r => Priority(r.Status)).ThenBy(r => r.Input.RowNumber);
+
+    // Strongest potential matches first, then rows that could not be screened, then likely different people.
+    private static int Priority(BatchStatus status) => status switch
+    {
+        BatchStatus.Match => 0,
+        BatchStatus.Error => 1,
+        BatchStatus.MatchWithConflicts => 2,
+        _ => 3,
+    };
 
     private int Count(BatchStatus status) => _results?.Count(r => r.Status == status) ?? 0;
 
@@ -242,6 +254,7 @@
             var started = DateTimeOffset.UtcNow;
             _screenedUtc = started;
 
+            var lastUpdate = started;
             foreach (var row in _input.Rows)
             {
                 if (token.IsCancellationRequested)
@@ -253,13 +266,15 @@
                 results.Add(BatchFile.Screen(screener, row, minScore, defaultType));
                 _done++;
 
-                // Let the page update now and then; screening runs on the browser's only thread.
-                if (_done % 10 == 0)
+                // Let the page update about 5 times a second; screening runs on the browser's only thread.
+                var now = DateTimeOffset.UtcNow;
+                if ((now - lastUpdate).TotalMilliseconds >= 200 && _done < _total)
                 {
-                    var perName = (DateTimeOffset.UtcNow - started).TotalSeconds / _done;
+                    lastUpdate = now;
+                    var perName = (now - started).TotalSeconds / _done;
                     _status = $"Screening {_done:N0} of {_total:N0}… about {TimeLeft(perName * (_total - _done))} left. Keep this tab open.";
                     StateHasChanged();
-                    await Task.Delay(1);
+                    await JS.InvokeVoidAsync("ofacMatchYield");
                 }
             }
 
@@ -292,6 +307,15 @@
         await JS.InvokeVoidAsync("ofacMatchDownload", name, text);
     }
 
+    private async Task TrySampleAsync()
+    {
+        _error = null;
+        _results = null;
+        _fileName = "Sample list";
+        _input = BatchFile.Read(BatchFile.Sample);
+        await ScreenAsync();
+    }
+
     private async Task DownloadTemplateAsync() =>
         await JS.InvokeVoidAsync("ofacMatchDownload", "ofacmatch-template.csv", BatchFile.Template);
 
@@ -301,7 +325,7 @@
     private static string Short(BatchStatus status) => status switch
     {
         BatchStatus.Match => "Review",
-        BatchStatus.MatchWithConflicts => "Review (conflicts)",
+        BatchStatus.MatchWithConflicts => "Likely different person – check",
         BatchStatus.NoMatch => "No match",
         _ => "Not screened",
     };

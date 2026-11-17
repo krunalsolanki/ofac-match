@@ -19,8 +19,11 @@ public static class JaroWinkler
         }
 
         var window = Math.Max(0, (Math.Max(a.Length, b.Length) / 2) - 1);
-        var aMatched = new bool[a.Length];
-        var bMatched = new bool[b.Length];
+
+        // Reused per thread: screening makes millions of comparisons, and allocating two
+        // arrays for each one is a large share of the time in a browser.
+        var aMatched = Buffer(ref t_aMatched, a.Length);
+        var bMatched = Buffer(ref t_bMatched, b.Length);
         var matches = 0;
 
         for (var i = 0; i < a.Length; i++)
@@ -86,6 +89,12 @@ public static class JaroWinkler
     {
         Guard.InRange(boostThreshold, 0, 1, nameof(boostThreshold));
         Guard.InRange(prefixScale, 0, 0.25, nameof(prefixScale));
+        return SimilarityUnchecked(a, b, boostThreshold, prefixScale);
+    }
+
+    /// <summary><see cref="Similarity"/> without the argument checks, for callers that already checked them.</summary>
+    internal static double SimilarityUnchecked(string a, string b, double boostThreshold, double prefixScale = 0.1)
+    {
         var jaro = Jaro(a, b);
         if (jaro <= boostThreshold)
         {
@@ -100,5 +109,25 @@ public static class JaroWinkler
         }
 
         return jaro + (prefix * prefixScale * (1 - jaro));
+    }
+
+    [ThreadStatic]
+    private static bool[]? t_aMatched;
+
+    [ThreadStatic]
+    private static bool[]? t_bMatched;
+
+    private static bool[] Buffer(ref bool[]? buffer, int length)
+    {
+        if (buffer is null || buffer.Length < length)
+        {
+            buffer = new bool[Math.Max(length, 64)];
+        }
+        else
+        {
+            Array.Clear(buffer, 0, length);
+        }
+
+        return buffer;
     }
 }

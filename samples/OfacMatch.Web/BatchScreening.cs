@@ -56,7 +56,9 @@ public sealed class BatchResult
     public BatchStatus Status =>
         Error is not null ? BatchStatus.Error
         : Matches.Count == 0 ? BatchStatus.NoMatch
-        : Matches.All(m => m.DateOfBirthConflict || m.CountryConflict) ? BatchStatus.MatchWithConflicts
+        // Only a birth year that differs from every match points to a different person. A country
+        // alone does not: OFAC often lists only some addresses (a bank's foreign branches, for example).
+        : Matches.All(m => m.DateOfBirthConflict) ? BatchStatus.MatchWithConflicts
         : BatchStatus.Match;
 }
 
@@ -82,6 +84,23 @@ public static class BatchFile
         "John Michael Doe,1970,United States,Individual\r\n" +
         "Jane Example,,,Individual\r\n" +
         "Example Trading Co. Ltd,,,Entity\r\n";
+
+    /// <summary>
+    /// A short list for trying the page: names on the SDN list (one spelled differently, one with
+    /// a different birth year), ordinary names, and a date the page can't read.
+    /// </summary>
+    public const string Sample =
+        "Customer ID,Name,Date of birth,Country,Type\r\n" +
+        "1001,Aymen Zawahri,1951,Egypt,Individual\r\n" +
+        "1002,Ayman al-Zawahiri,1990,United States,Individual\r\n" +
+        "1003,Viktor Bout,13 Jan 1967,Russia,Individual\r\n" +
+        "1004,Banco Nacional de Cuba,,Cuba,Entity\r\n" +
+        "1005,Emily Carter,1985,United States,Individual\r\n" +
+        "1006,Robert Miller,1972,United States,Individual\r\n" +
+        "1007,\"Thompson, Grace\",1964,United States,Individual\r\n" +
+        "1008,Daniel Lee,1979,United Kingdom,Individual\r\n" +
+        "1009,Blue River Holdings LLC,,United States,Entity\r\n" +
+        "1010,John Smith,born in the 80s,United States,Individual\r\n";
 
     /// <summary>Reads a CSV (comma, semicolon or tab separated) with or without a header row.</summary>
     public static BatchInput Read(string text)
@@ -308,7 +327,7 @@ public static class BatchFile
     public static string Describe(BatchStatus status) => status switch
     {
         BatchStatus.Match => "Potential match - review",
-        BatchStatus.MatchWithConflicts => "Potential match with conflicts - review",
+        BatchStatus.MatchWithConflicts => "Potential match, likely a different person (birth year differs) - review",
         BatchStatus.NoMatch => "No match at or above the minimum score",
         _ => "Not screened",
     };

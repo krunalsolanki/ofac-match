@@ -209,7 +209,14 @@ public sealed class SanctionsScreener
 {
     private readonly ScreeningOptions _options;
     private readonly NameScorer _scorer;
-    private readonly List<IndexedName> _names = new();
+    private readonly List<IndexedName> _nameList = new();
+    private readonly IndexedName[] _names;
+    private readonly EntryType[] _types;
+    private readonly long[] _initials;
+    private readonly Dictionary<string, int> _vocabulary = new(StringComparer.Ordinal);
+
+    [ThreadStatic]
+    private static TokenSimilarityCache? t_cache;
 
     /// <summary>Creates a screener and indexes every primary name and alias on the list.</summary>
     public SanctionsScreener(SanctionsList list, ScreeningOptions? options = null)
@@ -230,6 +237,11 @@ public sealed class SanctionsScreener
                 Index(entry, alias.Name, alias.Kind);
             }
         }
+
+        // Arrays, so the screening loop reads plain values (much faster in a browser).
+        _names = _nameList.ToArray();
+        _types = _names.Select(n => n.Entry.Type).ToArray();
+        _initials = _names.Select(n => n.Initials).ToArray();
     }
 
     /// <summary>Screens a name. Throws <see cref="ArgumentException"/> for a name <see cref="ScreeningRequest"/> rejects.</summary>
@@ -248,24 +260,38 @@ public sealed class SanctionsScreener
         var queryInitials = Initials(queryPlain.Tokens) | Initials(queryEntity.Tokens);
         var minScore = request.MinScore ?? _options.MinScore;
 
-        var best = new Dictionary<int, (IndexedName Name, NameScore Score)>();
-        foreach (var indexed in _names)
+        var cache = t_cache;
+        if (cache is null || !ReferenceEquals(cache.Owner, this))
         {
-            if (request.Type is EntryType type && indexed.Entry.Type != type)
+            cache = t_cache = new TokenSimilarityCache(this, _vocabulary.Count);
+        }
+
+        cache.Begin();
+        queryPlain.CacheRows = cache.RowsFor(queryPlain.Tokens);
+        queryEntity.CacheRows = cache.RowsFor(queryEntity.Tokens);
+
+        var best = new Dictionary<int, (IndexedName Name, NameScore Score)>();
+        var hasType = request.Type is not null;
+        var wantedType = request.Type ?? default;
+        for (var i = 0; i < _names.Length; i++)
+        {
+            var entryType = _types[i];
+            if (hasType && entryType != wantedType)
             {
                 continue;
             }
 
             // Cheap pre-filter in the spirit of OFAC FAQ 249: at least one name part must
             // start with the same letter as a part of the searched name.
-            if ((indexed.Initials & queryInitials) == 0)
+            if ((_initials[i] & queryInitials) == 0)
             {
                 continue;
             }
 
-            var query = indexed.Entry.Type == EntryType.Individual ? queryPlain : queryEntity;
-            var score = _scorer.Score(query, indexed.Tokens);
-            if (score.Score < minScore)
+            var indexed = _names[i];
+            var query = entryType == EntryType.Individual ? queryPlain : queryEntity;
+            var score = _scorer.Score(query, indexed.Tokens, minScore, cache);
+            if (score is null || score.Score < minScore)
             {
                 continue;
             }
@@ -296,7 +322,17 @@ public sealed class SanctionsScreener
         var tokens = NameNormalizer.Tokenize(natural, removeLegalSuffixes: entry.Type != EntryType.Individual);
         if (tokens.Count > 0)
         {
-            _names.Add(new IndexedName(entry, raw, kind, new NameTokens(tokens), Initials(tokens)));
+            var ids = new int[tokens.Count];
+            for (var i = 0; i < tokens.Count; i++)
+            {
+                if (!_vocabulary.TryGetValue(tokens[i], out ids[i]))
+                {
+                    ids[i] = _vocabulary.Count;
+                    _vocabulary[tokens[i]] = ids[i];
+                }
+            }
+
+            _nameList.Add(new IndexedName(entry, raw, kind, new NameTokens(tokens) { Ids = ids }, Initials(tokens)));
         }
     }
 
