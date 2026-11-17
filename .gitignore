@@ -485,3 +485,8 @@ ofac-data/
 
 # OFAC list copy for the web demo; the Pages workflow downloads a fresh one
 samples/OfacMatch.Web/wwwroot/data/
+
+# Python client build output
+clients/python/dist/
+clients/python/build/
+*.egg-info/

@@ -10,6 +10,7 @@ All notable changes are listed here. The project follows [Semantic Versioning](h
 - Web page: a "Try a sample list" button. Rows whose birth year differs from every match are shown as "likely a different person" and listed after the other potential matches; a different country alone no longer counts, because OFAC often lists only some of a party's addresses.
 
 - `OfacMatch.Api`: a self-hosted REST API in Docker (`ghcr.io/krunalsolanki/ofacmatch-api`). Screen one name or up to 1,000 per request with your own references, compare two names, look up an SDN entry, and read the OpenAPI description. It loads the SDN list at start-up and refreshes it daily, answers 503 rather than "no match" when no list is loaded, can require an API key, and never logs request bodies.
+- Python client for the REST API (`clients/python`, package `ofacmatch`): screen one name or any number (sent 1,000 at a time) with your own references, compare names, look up entries, and an `ofacmatch csv in.csv out.csv` command that writes a results file with reviewer columns. Standard library only.
 
 ### Changed
 

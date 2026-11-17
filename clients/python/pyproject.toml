@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ofacmatch"
+version = "0.1.0"
+description = "Python client for the self-hosted OfacMatch REST API: explainable OFAC SDN name screening that keeps your data on your own server."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "Apache-2.0"
+authors = [{ name = "Krunal Solanki" }]
+keywords = ["ofac", "sdn", "sanctions", "screening", "aml", "kyc", "compliance", "fuzzy-matching"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Programming Language :: Python :: 3",
+    "Topic :: Office/Business :: Financial",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/krunalsolanki/ofac-match"
+Documentation = "https://github.com/krunalsolanki/ofac-match/blob/main/clients/python/README.md"
+"REST API" = "https://github.com/krunalsolanki/ofac-match/blob/main/src/OfacMatch.Api/README.md"
+Issues = "https://github.com/krunalsolanki/ofac-match/issues"
+
+[project.scripts]
+ofacmatch = "ofacmatch.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["ofacmatch*"]
+
+[tool.setuptools.package-data]
+ofacmatch = ["py.typed"]

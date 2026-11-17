@@ -120,6 +120,15 @@ curl -X POST http://localhost:8080/v1/screen -H "Content-Type: application/json"
 
 It downloads the SDN list at start-up and refreshes it daily, screens up to 1,000 names per request (about 1.6 seconds for 1,000 on a laptop), and can require an API key. See the [REST API guide](https://github.com/krunalsolanki/ofac-match/blob/main/src/OfacMatch.Api/README.md).
 
+**From Python**, with the [Python client](https://github.com/krunalsolanki/ofac-match/blob/main/clients/python/README.md) (no dependencies; it also screens a CSV from the command line):
+
+```python
+from ofacmatch import Client
+
+result = Client("http://localhost:8080").screen_batch(
+    [{"reference": "CUST-1", "name": "Aymen Zawahri", "year_of_birth": 1951}])
+```
+
 ### Command line
 
 ```bash
@@ -178,7 +187,8 @@ Things I'd like to work on, roughly in order:
 - [ ] Support OFAC's Consolidated (non-SDN) list and the Advanced XML format
 - [x] Faster screening (about 4 times faster, same results)
 - [x] Self-hosted REST API in Docker
-- [ ] A Python client for the REST API, and a `dotnet tool` package
+- [x] A Python client for the REST API
+- [ ] A `dotnet tool` package
 
 If you'd like to help with any of these, or have a case that scores badly, open an issue. [CONTRIBUTING.md](https://github.com/krunalsolanki/ofac-match/blob/main/CONTRIBUTING.md) has the details.
 
