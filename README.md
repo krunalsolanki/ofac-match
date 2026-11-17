@@ -1,15 +1,36 @@
 # OfacMatch
 
+[![CI](https://github.com/krunalsolanki/ofac-match/actions/workflows/ci.yml/badge.svg)](https://github.com/krunalsolanki/ofac-match/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/OfacMatch?label=NuGet)](https://www.nuget.org/packages/OfacMatch)
+[![PyPI](https://img.shields.io/pypi/v/ofacmatch?label=PyPI)](https://pypi.org/project/ofacmatch/)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io%2Fkrunalsolanki%2Fofacmatch--api-blue)](https://github.com/krunalsolanki/ofac-match/pkgs/container/ofacmatch-api)
+[![License](https://img.shields.io/badge/license-Apache--2.0-green)](https://github.com/krunalsolanki/ofac-match/blob/main/LICENSE)
 [![Software DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23926803.svg)](https://doi.org/10.5281/zenodo.23926803)
 [![Paper DOI](https://img.shields.io/badge/paper-10.5281%2Fzenodo.23930926-blue)](https://doi.org/10.5281/zenodo.23930926)
 
-[![OFAC Match MCP server](https://mcprush.com/badge/ofac-match-mcp/card.svg)](https://mcprush.com/to/ofac-match-mcp?ref=badge)
+**Free, open-source OFAC sanctions name screening that tells you *why* a name matched, and runs on your own machine, so the names you screen never leave your systems.**
 
-OFAC sanctions name screening for .NET that tells you *why* a name matched.
+Built for the teams who screen customers and can't justify a vendor: title and escrow, lenders, credit unions, money transmitters, exporters, nonprofits, and the developers who build for them.
+
+### **[▶ Try it in your browser](https://krunalsolanki.github.io/ofac-match/)** · no install, no sign-up
+
+Screen one name, or upload a customer list (CSV, or Excel saved as CSV) and download an audit file with every potential match, the reason for it, and columns for the reviewer's decision.
 
 ![OfacMatch screening a misspelled name, flagging a birth-year conflict and clearing a common name](https://raw.githubusercontent.com/krunalsolanki/ofac-match/main/docs/images/demo.gif)
 
-**[Try it in your browser](https://krunalsolanki.github.io/ofac-match/)**: no install, and the names you type never leave your browser. Screen one name, or upload a CSV list of customers and download an audit file of the results.
+## Ways to use it
+
+| You are | Use | Get started |
+|---|---|---|
+| Compliance or operations staff | The browser page: one name or a whole list, audit file out | [Open it](https://krunalsolanki.github.io/ofac-match/) |
+| A team using Python, Java, Node, Go, an ERP or a no-code tool | A self-hosted REST API in Docker, on your own server | `docker run -p 8080:8080 ghcr.io/krunalsolanki/ofacmatch-api` ([guide](https://github.com/krunalsolanki/ofac-match/blob/main/src/OfacMatch.Api/README.md)) |
+| A Python developer or data team | The Python client (no dependencies), plus a CSV command | `pip install ofacmatch` ([guide](https://github.com/krunalsolanki/ofac-match/blob/main/clients/python/README.md)) |
+| A .NET developer | The library, in your own process | `dotnet add package OfacMatch` ([quick start](#quick-start)) |
+| Using an AI assistant or agent | The MCP server for Claude, VS Code and Visual Studio | `claude mcp add ofac-match -- dnx OfacMatch.Mcp --yes` ([more](#use-it-from-an-ai-assistant-mcp-server)) |
+
+All of them use the same matcher, explain every match the same way, and check the OFAC **SDN list**. A person must still review every potential match.
+
+[![OFAC Match MCP server](https://mcprush.com/badge/ofac-match-mcp/card.svg)](https://mcprush.com/to/ofac-match-mcp?ref=badge)
 
 ## Why I built this
 
