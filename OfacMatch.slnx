@@ -4,10 +4,12 @@
     <Project Path="samples/OfacMatch.Web/OfacMatch.Web.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/OfacMatch.Api/OfacMatch.Api.csproj" />
     <Project Path="src/OfacMatch.Mcp/OfacMatch.Mcp.csproj" />
     <Project Path="src/OfacMatch/OfacMatch.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/OfacMatch.Api.Tests/OfacMatch.Api.Tests.csproj" />
     <Project Path="tests/OfacMatch.Tests/OfacMatch.Tests.csproj" />
   </Folder>
   <Folder Name="/eval/">

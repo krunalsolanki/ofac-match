@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>OfacMatch.Api</RootNamespace>
+    <Version>2.0.0</Version>
+    <Authors>Krunal Solanki</Authors>
+    <Description>Self-hosted REST API for explainable OFAC SDN name screening. Runs on your own server; names are never sent anywhere.</Description>
+    <IsPackable>false</IsPackable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfacMatch\OfacMatch.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfacMatch.Api.Tests" />
+  </ItemGroup>
+
+</Project>

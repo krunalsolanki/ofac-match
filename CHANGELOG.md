@@ -9,6 +9,8 @@ All notable changes are listed here. The project follows [Semantic Versioning](h
 - Web page: screen a whole list. Upload a CSV with a Name column (or First and Last name columns) and optional Year of birth or date of birth, Country and Type columns, up to 10,000 rows. The file is read in the browser and never uploaded. Results show which rows need review, and an audit file (CSV) has one line per potential match with the score, the explanation, the list date and empty columns for the reviewer's decision. Cells that a spreadsheet would run as a formula are stored as text.
 - Web page: a "Try a sample list" button. Rows whose birth year differs from every match are shown as "likely a different person" and listed after the other potential matches; a different country alone no longer counts, because OFAC often lists only some of a party's addresses.
 
+- `OfacMatch.Api`: a self-hosted REST API in Docker (`ghcr.io/krunalsolanki/ofacmatch-api`). Screen one name or up to 1,000 per request with your own references, compare two names, look up an SDN entry, and read the OpenAPI description. It loads the SDN list at start-up and refreshes it daily, answers 503 rather than "no match" when no list is loaded, can require an API key, and never logs request bodies.
+
 ### Changed
 
 - Screening is about 4 times faster with the same scores and matches. Each distinct listed name part is compared once per search, names that cannot reach the minimum score are dropped before pairing, and the whole-name comparison is skipped when the guard means it would not count.

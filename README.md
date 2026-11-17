@@ -105,6 +105,21 @@ claude mcp add ofac-match -- dnx OfacMatch.Mcp --yes
 
 Tools: `screen_name`, `screen_names`, `get_sanctions_entry`, `compare_names`, `get_list_info`. See the [MCP server guide](https://github.com/krunalsolanki/ofac-match/blob/main/src/OfacMatch.Mcp/README.md) for other clients and settings.
 
+### REST API (self-hosted, Docker)
+
+For other languages (Python, Java, Node, Go, an ERP or a no-code tool), run OfacMatch as an HTTP service on your own server. Names are screened inside that container and never sent anywhere else.
+
+```bash
+docker run -p 8080:8080 ghcr.io/krunalsolanki/ofacmatch-api
+```
+
+```bash
+curl -X POST http://localhost:8080/v1/screen -H "Content-Type: application/json" \
+     -d '{"name": "Aymen Zawahri", "yearOfBirth": 1951}'
+```
+
+It downloads the SDN list at start-up and refreshes it daily, screens up to 1,000 names per request (about 1.6 seconds for 1,000 on a laptop), and can require an API key. See the [REST API guide](https://github.com/krunalsolanki/ofac-match/blob/main/src/OfacMatch.Api/README.md).
+
 ### Command line
 
 ```bash
@@ -148,6 +163,7 @@ dotnet run -c Release --project eval/OfacMatch.Evaluation -- --data ofac-data --
 | [Held-out results](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation-heldout.md) and [comparison](https://github.com/krunalsolanki/ofac-match/blob/main/docs/baselines-heldout.md) | Results on names never used during development, and against eight standard methods |
 | [Development results](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation.md), [comparison](https://github.com/krunalsolanki/ofac-match/blob/main/docs/baselines.md) and [tuning](https://github.com/krunalsolanki/ofac-match/blob/main/docs/tuning.md) | The set used while improving the method |
 | [MCP server](https://github.com/krunalsolanki/ofac-match/blob/main/src/OfacMatch.Mcp/README.md) | Using OfacMatch from AI assistants |
+| [REST API](https://github.com/krunalsolanki/ofac-match/blob/main/src/OfacMatch.Api/README.md) | Running OfacMatch as a self-hosted HTTP service in Docker |
 
 ## What's next
 
@@ -160,8 +176,9 @@ Things I'd like to work on, roughly in order:
 - [ ] Give rare words more weight ("CUBA" should count more than "BANK"), to cut alerts on common names
 - [ ] Catch typos at the start of company endings ("LTMITED")
 - [ ] Support OFAC's Consolidated (non-SDN) list and the Advanced XML format
-- [ ] Faster batch screening
-- [ ] An ASP.NET Core sample and a `dotnet tool` package
+- [x] Faster screening (about 4 times faster, same results)
+- [x] Self-hosted REST API in Docker
+- [ ] A Python client for the REST API, and a `dotnet tool` package
 
 If you'd like to help with any of these, or have a case that scores badly, open an issue. [CONTRIBUTING.md](https://github.com/krunalsolanki/ofac-match/blob/main/CONTRIBUTING.md) has the details.
 
