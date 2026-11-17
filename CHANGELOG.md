@@ -2,6 +2,12 @@
 
 All notable changes are listed here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Web page: screen a whole list. Upload a CSV with a Name column (or First and Last name columns) and optional Year of birth or date of birth, Country and Type columns, up to 10,000 rows. The file is read in the browser and never uploaded. Results show which rows need review, and an audit file (CSV) has one line per potential match with the score, the explanation, the list date and empty columns for the reviewer's decision. Cells that a spreadsheet would run as a formula are stored as text.
+
 ## [2.0.0] - 2026-11-04
 
 ### Changed

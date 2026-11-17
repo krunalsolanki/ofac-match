@@ -9,7 +9,7 @@ OFAC sanctions name screening for .NET that tells you *why* a name matched.
 
 ![OfacMatch screening a misspelled name, flagging a birth-year conflict and clearing a common name](https://raw.githubusercontent.com/krunalsolanki/ofac-match/main/docs/images/demo.gif)
 
-**[Try it in your browser](https://krunalsolanki.github.io/ofac-match/)**: no install, and the names you type never leave your browser.
+**[Try it in your browser](https://krunalsolanki.github.io/ofac-match/)**: no install, and the names you type never leave your browser. Screen one name, or upload a CSV list of customers and download an audit file of the results.
 
 ## Why I built this
 

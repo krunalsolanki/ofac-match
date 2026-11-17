@@ -1,0 +1,318 @@
+@using OfacMatch.Data
+@using OfacMatch.Screening
+@inject SanctionsData Data
+@inject IJSRuntime JS
+@implements IDisposable
+
+<section class="batch">
+    <p>
+        Upload a CSV file with a column called <strong>Name</strong>. Optional columns: <strong>Year of birth</strong>
+        (or a date of birth), <strong>Country</strong> and <strong>Type</strong> (Individual or Entity).
+        Separate <em>First name</em> and <em>Last name</em> columns also work.
+        Up to @BatchFile.MaxRows.ToString("N0") rows. Screening runs on your computer, so a long list takes a few
+        minutes; the page shows the time left.
+    </p>
+    <p class="private">The file is read in your browser. It is never uploaded anywhere.</p>
+
+    <div class="batch-controls">
+        <label class="file">
+            CSV file
+            <InputFile OnChange="LoadFileAsync" accept=".csv,.txt,text/csv" disabled="@_busy" />
+        </label>
+        <label>
+            Minimum score
+            <input type="number" @bind="_minScore" min="0" max="100" step="1" disabled="@_busy" />
+        </label>
+        <label>
+            Type when not given
+            <select @bind="_defaultType" disabled="@_busy">
+                <option value="">All</option>
+                @foreach (var type in Enum.GetValues<EntryType>())
+                {
+                    <option value="@type">@type</option>
+                }
+            </select>
+        </label>
+        @if (_busy)
+        {
+            <button type="button" @onclick="Cancel">Stop</button>
+        }
+        else
+        {
+            <button type="button" class="primary" @onclick="ScreenAsync" disabled="@(_input is null || _input.Rows.Count == 0)">Screen list</button>
+        }
+    </div>
+
+    <p class="examples">
+        <button type="button" @onclick="DownloadTemplateAsync">Download a template</button>
+    </p>
+
+    @if (_error is not null)
+    {
+        <p class="error" role="alert">@_error</p>
+    }
+
+    @if (_input is not null && _results is null && !_busy)
+    {
+        <p class="status">
+            @_fileName: @_input.Rows.Count.ToString("N0") row@(_input.Rows.Count == 1 ? "" : "s") to screen.
+            @if (_input.RowsSkipped > 0)
+            {
+                <span> @_input.RowsSkipped.ToString("N0") more rows were not read (limit @BatchFile.MaxRows.ToString("N0")).</span>
+            }
+        </p>
+        <ul class="columns">
+            @foreach (var column in _input.ColumnsUsed)
+            {
+                <li>@column</li>
+            }
+        </ul>
+    }
+
+    @if (_busy)
+    {
+        <p class="status" aria-live="polite">@_status</p>
+        <progress max="@_total" value="@_done"></progress>
+    }
+
+    @if (_results is not null)
+    {
+        <div class="summary">
+            <div><strong>@_results.Count.ToString("N0")</strong> screened</div>
+            <div class="need-review"><strong>@Count(BatchStatus.Match)</strong> potential match@(Count(BatchStatus.Match) == 1 ? "" : "es")</div>
+            <div class="conflicts"><strong>@Count(BatchStatus.MatchWithConflicts)</strong> with conflicts on every match</div>
+            <div class="ok"><strong>@Count(BatchStatus.NoMatch)</strong> no match</div>
+            @if (Count(BatchStatus.Error) > 0)
+            {
+                <div class="bad"><strong>@Count(BatchStatus.Error)</strong> not screened</div>
+            }
+        </div>
+        <p class="meta">
+            Minimum score @_usedMinScore. @(_stopped ? "Stopped early. " : "")Took @_elapsed.TotalSeconds.ToString("0.0") s.
+            Matches with conflicts usually belong to a different person, but a person must still review them.
+        </p>
+
+        <p class="examples">
+            <button type="button" class="primary" @onclick="DownloadResultsAsync">Download audit file (CSV)</button>
+            <label class="inline"><input type="checkbox" @bind="_onlyReview" /> Show only rows to review</label>
+        </p>
+        <p class="meta">
+            The audit file has one line per potential match, with the score, the explanation, the list date and empty
+            columns for the reviewer's decision, name and notes. It opens in Excel.
+        </p>
+
+        <table class="batch-results">
+            <thead>
+                <tr><th>Row</th><th>Name</th><th>Result</th><th>Best score</th><th>Listed name</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Shown.Take(MaxShown))
+                {
+                    var best = r.Matches.FirstOrDefault();
+                    <tr class="@RowClass(r.Status)">
+                        <td>@r.Input.RowNumber</td>
+                        <td>@r.Input.Name</td>
+                        <td>
+                            @Short(r.Status)
+                            @if (r.Error is not null)
+                            {
+                                <div class="meta">@r.Error</div>
+                            }
+                            @if (r.Note is not null)
+                            {
+                                <div class="meta">@r.Note</div>
+                            }
+                        </td>
+                        <td>@(best is null ? "" : best.Score.ToString("0.0"))</td>
+                        <td>
+                            @if (best is not null)
+                            {
+                                <details>
+                                    <summary>@best.Entry.Name@(r.Matches.Count > 1 ? $" (+{r.Matches.Count - 1} more)" : "")</summary>
+                                    @foreach (var m in r.Matches)
+                                    {
+                                        <pre>@m.Explain()</pre>
+                                    }
+                                </details>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (Shown.Count() > MaxShown)
+        {
+            <p class="meta">Showing the first @MaxShown rows. The audit file has all of them.</p>
+        }
+        @if (!Shown.Any())
+        {
+            <p class="clear">No rows to review.</p>
+        }
+    }
+</section>
+
+@code {
+    private const int MaxShown = 500;
+
+    private BatchInput? _input;
+    private string _fileName = "";
+    private List<BatchResult>? _results;
+    private double _minScore = 85;
+    private double _usedMinScore;
+    private string _defaultType = "";
+    private bool _onlyReview = true;
+    private bool _busy;
+    private bool _stopped;
+    private int _done;
+    private int _total;
+    private string? _status;
+    private string? _error;
+    private TimeSpan _elapsed;
+    private DateTimeOffset _screenedUtc;
+    private CancellationTokenSource? _cancel;
+
+    // Rows to review: potential matches, rows that could not be screened, and rows screened with a note
+    // (for example a year of birth that was not understood).
+    private IEnumerable<BatchResult> Shown => _results is null
+        ? Enumerable.Empty<BatchResult>()
+        : _onlyReview ? _results.Where(r => r.Status != BatchStatus.NoMatch || r.Note is not null) : _results;
+
+    private int Count(BatchStatus status) => _results?.Count(r => r.Status == status) ?? 0;
+
+    private async Task LoadFileAsync(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        _results = null;
+        _input = null;
+
+        var file = e.File;
+        if (file.Size > BatchFile.MaxBytes)
+        {
+            _error = $"That file is {file.Size / 1024 / 1024.0:0.0} MB. The limit is {BatchFile.MaxBytes / 1024 / 1024} MB; split it into smaller files.";
+            return;
+        }
+
+        try
+        {
+            using var reader = new StreamReader(file.OpenReadStream(BatchFile.MaxBytes));
+            var text = await reader.ReadToEndAsync();
+            _fileName = file.Name;
+            _input = BatchFile.Read(text);
+            if (_input.Rows.Count == 0)
+            {
+                _error = "No rows found in that file.";
+                _input = null;
+            }
+        }
+        catch (IOException)
+        {
+            _error = "Couldn't read that file. Save it as CSV (comma-separated) and try again.";
+        }
+    }
+
+    private async Task ScreenAsync()
+    {
+        if (_input is null)
+        {
+            return;
+        }
+
+        _error = null;
+        _results = null;
+        _busy = true;
+        _stopped = false;
+        _done = 0;
+        _total = _input.Rows.Count;
+        _cancel = new CancellationTokenSource();
+        var token = _cancel.Token;
+        var defaultType = Enum.TryParse<EntryType>(_defaultType, out var t) ? t : (EntryType?)null;
+        var minScore = Math.Clamp(_minScore, 0, 100);
+
+        try
+        {
+            if (Data.Entries == 0)
+            {
+                _status = "Loading the OFAC list (about 8 MB, first time only)…";
+                StateHasChanged();
+                await Task.Delay(1);
+            }
+
+            var screener = await Data.GetAsync();
+            var results = new List<BatchResult>(_total);
+            var started = DateTimeOffset.UtcNow;
+            _screenedUtc = started;
+
+            foreach (var row in _input.Rows)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    _stopped = true;
+                    break;
+                }
+
+                results.Add(BatchFile.Screen(screener, row, minScore, defaultType));
+                _done++;
+
+                // Let the page update now and then; screening runs on the browser's only thread.
+                if (_done % 10 == 0)
+                {
+                    var perName = (DateTimeOffset.UtcNow - started).TotalSeconds / _done;
+                    _status = $"Screening {_done:N0} of {_total:N0}… about {TimeLeft(perName * (_total - _done))} left. Keep this tab open.";
+                    StateHasChanged();
+                    await Task.Delay(1);
+                }
+            }
+
+            _elapsed = DateTimeOffset.UtcNow - started;
+            _usedMinScore = minScore;
+            _results = results;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidDataException)
+        {
+            _error = "Couldn't load the OFAC list. Reload the page to try again.";
+        }
+        finally
+        {
+            _busy = false;
+            _status = null;
+        }
+    }
+
+    private void Cancel() => _cancel?.Cancel();
+
+    private async Task DownloadResultsAsync()
+    {
+        if (_results is null)
+        {
+            return;
+        }
+
+        var text = BatchFile.WriteAuditFile(_results, _usedMinScore, Data, _screenedUtc);
+        var name = $"ofacmatch-screening-{_screenedUtc:yyyyMMdd-HHmm}.csv";
+        await JS.InvokeVoidAsync("ofacMatchDownload", name, text);
+    }
+
+    private async Task DownloadTemplateAsync() =>
+        await JS.InvokeVoidAsync("ofacMatchDownload", "ofacmatch-template.csv", BatchFile.Template);
+
+    private static string TimeLeft(double seconds) =>
+        seconds < 60 ? $"{Math.Max(1, Math.Round(seconds)):0} s" : $"{Math.Ceiling(seconds / 60):0} min";
+
+    private static string Short(BatchStatus status) => status switch
+    {
+        BatchStatus.Match => "Review",
+        BatchStatus.MatchWithConflicts => "Review (conflicts)",
+        BatchStatus.NoMatch => "No match",
+        _ => "Not screened",
+    };
+
+    private static string RowClass(BatchStatus status) => status switch
+    {
+        BatchStatus.Match => "row-review",
+        BatchStatus.MatchWithConflicts => "row-conflicts",
+        BatchStatus.Error => "row-error",
+        _ => "",
+    };
+
+    public void Dispose() => _cancel?.Dispose();
+}
