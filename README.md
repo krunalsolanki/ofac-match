@@ -187,6 +187,7 @@ dotnet run -c Release --project eval/OfacMatch.Evaluation -- --data ofac-data --
 |---|---|
 | [Why OfacMatch](https://github.com/krunalsolanki/ofac-match/blob/main/docs/why-ofacmatch.md) | Benefits and comparison with other options |
 | [How scoring works](https://github.com/krunalsolanki/ofac-match/blob/main/docs/how-scoring-works.md) | Every step, with a worked example |
+| [Article: I tested 9 name-matching methods on the OFAC sanctions list](https://dev.to/krunal_solanki_f19a805b67/how-fuzzy-name-matching-against-the-ofac-sanctions-list-actually-works-9fl) | A readable walkthrough of the method, the test results and picking a threshold |
 | [API and configuration reference](https://github.com/krunalsolanki/ofac-match/blob/main/docs/reference.md) | Types, options and defaults |
 | [Using OfacMatch responsibly](https://github.com/krunalsolanki/ofac-match/blob/main/docs/compliance-notes.md) | Thresholds, review, record keeping, limits |
 | [Evaluation protocol](https://github.com/krunalsolanki/ofac-match/blob/main/docs/evaluation-protocol.md) | How the development and held-out sets are kept apart, and how settings were chosen |
