@@ -44,6 +44,72 @@ internal static class RemarksParser
         return dates;
     }
 
+    // One remark part, e.g. "Email Address info@example.test", "alt. Website www.example.test",
+    // "Telephone No. (022) 7363030", "Fax: 97082881184" or "Digital Currency Address - XBT 1A2b3C".
+    // Anchored to the start of the part so a title such as "Director of the National Telephone Company"
+    // is not read as a phone number.
+    private static readonly Regex IdentifierPattern = new(
+        @"^(?:alt\.\s+)?(?<label>Email\s+Address|Website|Phone\s+Number|Telephone|Fax|Digital\s+Currency\s+Address\s*-\s*(?<currency>[A-Za-z0-9]+))(?:\s+No\.)?\s*:?\s+(?<value>\S.*)$",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+    public static IReadOnlyList<SanctionsIdentifier> ParseIdentifiers(string? remarks)
+    {
+        if (string.IsNullOrEmpty(remarks))
+        {
+            return Array.Empty<SanctionsIdentifier>();
+        }
+
+        var identifiers = new List<SanctionsIdentifier>();
+        foreach (var part in remarks!.Split(';'))
+        {
+            var m = IdentifierPattern.Match(part.Trim());
+            if (!m.Success)
+            {
+                continue;
+            }
+
+            var label = Regex.Replace(m.Groups["label"].Value, @"\s+", " ");
+            var type = TypeOf(label);
+            var value = m.Groups["value"].Value.Trim();
+
+            // Phone numbers can contain spaces, so keep the whole value. Other identifiers are one token;
+            // anything after it is commentary ("www.example.test. Offices worldwide.").
+            if (type != IdentifierType.Phone)
+            {
+                value = value.Split((char[]?)null, 2, StringSplitOptions.RemoveEmptyEntries)[0];
+            }
+
+            value = value.TrimEnd('.');
+            if (value.Length == 0)
+            {
+                continue;
+            }
+
+            var currency = m.Groups["currency"].Success ? m.Groups["currency"].Value.ToUpperInvariant() : null;
+            identifiers.Add(new SanctionsIdentifier(type, value, CanonicalLabel(label, currency), currency));
+        }
+
+        return identifiers;
+    }
+
+    private static string CanonicalLabel(string label, string? currency) => label.ToUpperInvariant() switch
+    {
+        "EMAIL ADDRESS" => "Email Address",
+        "WEBSITE" => "Website",
+        "PHONE NUMBER" => "Phone Number",
+        "TELEPHONE" => "Telephone",
+        "FAX" => "Fax",
+        _ => "Digital Currency Address - " + currency,
+    };
+
+    private static IdentifierType TypeOf(string label) => label.ToUpperInvariant() switch
+    {
+        "EMAIL ADDRESS" => IdentifierType.Email,
+        "WEBSITE" => IdentifierType.Website,
+        "PHONE NUMBER" or "TELEPHONE" or "FAX" => IdentifierType.Phone,
+        _ => IdentifierType.CryptoAddress,
+    };
+
     private static int? MonthNumber(string abbreviation)
     {
         var months = new[] { "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };

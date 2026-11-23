@@ -12,6 +12,8 @@ All notable changes are listed here. The project follows [Semantic Versioning](h
 - `OfacMatch.Api`: a self-hosted REST API in Docker (`ghcr.io/krunalsolanki/ofacmatch-api`). Screen one name or up to 1,000 per request with your own references, compare two names, look up an SDN entry, and read the OpenAPI description. It loads the SDN list at start-up and refreshes it daily, answers 503 rather than "no match" when no list is loaded, can require an API key, and never logs request bodies.
 - Python client for the REST API (`clients/python`, package `ofacmatch`): screen one name or any number (sent 1,000 at a time) with your own references, compare names, look up entries, and an `ofacmatch csv in.csv out.csv` command that writes a results file with reviewer columns. Standard library only.
 
+- `SanctionsEntry.Identifiers`: the email addresses, websites, phone and fax numbers, and digital currency addresses that OFAC lists in each entry's remarks (on the current list: 370 emails, 1,306 websites, 185 phone and fax numbers, 1,075 crypto addresses). Screening doesn't use them yet.
+
 ### Changed
 
 - The list loader also reads `SDN_COMMENTS.CSV`. SDN.CSV cuts an entry's remarks off at 1,000 characters, and OFAC publishes the rest in that file; 36 entries are affected, most of them listing email addresses, websites or crypto addresses near the end. `DownloadAsync` fetches it (a missing file is skipped), `LoadFromDirectory` reads it when present, and the web page uses it. `SanctionsList.Load` has a new overload that takes it.
@@ -21,8 +23,6 @@ All notable changes are listed here. The project follows [Semantic Versioning](h
 ## [2.0.0] - 2026-11-04
 
 ### Changed
-
-- The list loader also reads `SDN_COMMENTS.CSV`. SDN.CSV cuts an entry's remarks off at 1,000 characters, and OFAC publishes the rest in that file; 36 entries are affected, most of them listing email addresses, websites or crypto addresses near the end. `DownloadAsync` fetches it (a missing file is skipped), `LoadFromDirectory` reads it when present, and the web page uses it. `SanctionsList.Load` has a new overload that takes it.
 
 - A search with more name parts than a listed name of two or more parts (an extra middle name, for example) is also scored from the listed name's side, reduced slightly for the extra parts (`ScoringOptions.ExtraPartPenalty`, default 0.1, chosen on a development set; see `docs/evaluation-protocol.md`). On the development set, searches with an extra middle name are found at a threshold of 85 in 100% of cases, against 19.3% before. Two-part searches score as before; three-part ordinary names alert more often at 85 (22.5% against 6.8%). Set `ScoringOptions.AllowExtraSearchedParts = false` for the previous behaviour.
 
@@ -66,8 +66,6 @@ All notable changes are listed here. The project follows [Semantic Versioning](h
 - The command-line sample reports missing or invalid option values and unknown options instead of crashing.
 
 ### Changed
-
-- The list loader also reads `SDN_COMMENTS.CSV`. SDN.CSV cuts an entry's remarks off at 1,000 characters, and OFAC publishes the rest in that file; 36 entries are affected, most of them listing email addresses, websites or crypto addresses near the end. `DownloadAsync` fetches it (a missing file is skipped), `LoadFromDirectory` reads it when present, and the web page uses it. `SanctionsList.Load` has a new overload that takes it.
 
 - Cleaned up project credits and evaluation wording.
 

@@ -28,6 +28,7 @@ A loaded list and a `SanctionsScreener` built on it are read-only and safe to sh
 | `Programs` | Program tags, e.g. `SDGT`, `IRAN`. |
 | `Title`, `Remarks` | As published. |
 | `DatesOfBirth` | `PartialDate` values parsed from remarks ("DOB 15 Mar 1970", "DOB 1965", "DOB circa 1950"). |
+| `Identifiers` | `SanctionsIdentifier` values parsed from remarks: email addresses, websites, phone and fax numbers, and digital currency addresses. Each has a `Type` (`Email`, `Website`, `Phone`, `CryptoAddress`), the `Value` as published, OFAC's `Label` (e.g. `Fax`) and, for crypto, the `Currency` (e.g. `XBT`). |
 | `Aliases` | `SanctionsAlias` (aka, fka, nka). |
 | `Addresses`, `Countries` | From ADD.CSV. |
 

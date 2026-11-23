@@ -77,4 +77,61 @@ public class DataTests
 
         Assert.Equal(expected, string.Join("|", dates));
     }
+
+    // Formats seen in OFAC's remarks. Values are fictional.
+    [Theory]
+    [InlineData("Email Address info@example.test.", "Email|Email Address|info@example.test|")]
+    [InlineData("alt. Email Address Sales_Desk@Example.test", "Email|Email Address|Sales_Desk@Example.test|")]
+    [InlineData("Website www.example.test", "Website|Website|www.example.test|")]
+    [InlineData("Website:  WWW.EXAMPLE.TEST", "Website|Website|WWW.EXAMPLE.TEST|")]
+    [InlineData("Website www.example.test. Offices worldwide.", "Website|Website|www.example.test|")]
+    [InlineData("alt. Website http://www.example.test/index.html", "Website|Website|http://www.example.test/index.html|")]
+    [InlineData("Phone Number 8612345678901", "Phone|Phone Number|8612345678901|")]
+    [InlineData("Phone Number +52 686-383-0000.", "Phone|Phone Number|+52 686-383-0000|")]
+    [InlineData("Telephone No. (218) (0)214770000", "Phone|Telephone|(218) (0)214770000|")]
+    [InlineData("Telephone: 0097200000000", "Phone|Telephone|0097200000000|")]
+    [InlineData("Fax No. (022) 7360000.", "Phone|Fax|(022) 7360000|")]
+    [InlineData("Digital Currency Address - XBT 1ExampLeAddressXYZ123", "CryptoAddress|Digital Currency Address - XBT|1ExampLeAddressXYZ123|XBT")]
+    [InlineData("alt. Digital Currency Address - ETH 0xAbC0000000000000000000000000000000000001", "CryptoAddress|Digital Currency Address - ETH|0xAbC0000000000000000000000000000000000001|ETH")]
+    public void RemarksParser_extracts_identifiers(string remarks, string expected)
+    {
+        var id = Assert.Single(RemarksParser.ParseIdentifiers(remarks));
+
+        Assert.Equal(expected, $"{id.Type}|{id.Label}|{id.Value}|{id.Currency}");
+    }
+
+    [Theory]
+    [InlineData("Principal Director of Freedonia's National Telephone Company; DOB 1960.")]
+    [InlineData("Passport 12345; Nationality Freedonia.")]
+    [InlineData("Website")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void RemarksParser_ignores_parts_that_are_not_identifiers(string? remarks)
+    {
+        Assert.Empty(RemarksParser.ParseIdentifiers(remarks));
+    }
+
+    [Fact]
+    public void Entry_lists_every_identifier_in_its_remarks()
+    {
+        // Shaped like a real entry: a company that later changed its name keeps the same contact details.
+        var entry = new SanctionsEntry(
+            300,
+            "EXAMPLE MACHINERY CO., LTD.",
+            EntryType.Entity,
+            new[] { "ILLICIT-DRUGS-EO14059" },
+            null,
+            "Website www.example-machinery.test; Email Address sales@example-machinery.test; Phone Number 8615800000000; "
+            + "Organization Established Date 01 Jan 2013; a.k.a. 'EXAMPLE GROUP LTD.'; alt. Email Address info@example-machinery.test.");
+
+        Assert.Equal(
+            new[]
+            {
+                "Website www.example-machinery.test",
+                "Email Address sales@example-machinery.test",
+                "Phone Number 8615800000000",
+                "Email Address info@example-machinery.test",
+            },
+            entry.Identifiers.Select(i => i.ToString()));
+    }
 }

@@ -92,6 +92,47 @@ public sealed class SanctionsAlias
     public string? Remarks { get; }
 }
 
+/// <summary>The kind of contact or payment identifier OFAC lists in an entry's remarks.</summary>
+public enum IdentifierType
+{
+    /// <summary>An email address ("Email Address ...").</summary>
+    Email,
+    /// <summary>A website ("Website ...").</summary>
+    Website,
+    /// <summary>A phone or fax number ("Phone Number ...", "Telephone ...", "Fax ...").</summary>
+    Phone,
+    /// <summary>A digital currency address ("Digital Currency Address - XBT ...").</summary>
+    CryptoAddress,
+}
+
+/// <summary>An email address, website, phone number or crypto address listed in an entry's remarks.</summary>
+public sealed class SanctionsIdentifier
+{
+    /// <summary>Creates an identifier.</summary>
+    public SanctionsIdentifier(IdentifierType type, string value, string label, string? currency = null)
+    {
+        Type = type;
+        Value = Guard.NotNull(value, nameof(value));
+        Label = Guard.NotNull(label, nameof(label));
+        Currency = currency;
+    }
+
+    /// <summary>Email, website, phone or crypto address.</summary>
+    public IdentifierType Type { get; }
+
+    /// <summary>The value as OFAC published it, e.g. "www.example.test" or "+52 686-383-6864".</summary>
+    public string Value { get; }
+
+    /// <summary>OFAC's label, e.g. "Email Address", "Fax" or "Digital Currency Address - XBT".</summary>
+    public string Label { get; }
+
+    /// <summary>The currency code for a crypto address, e.g. "XBT" or "ETH"; otherwise null.</summary>
+    public string? Currency { get; }
+
+    /// <inheritdoc />
+    public override string ToString() => $"{Label} {Value}";
+}
+
 /// <summary>An address from ADD.CSV.</summary>
 public sealed class SanctionsAddress
 {
@@ -132,6 +173,7 @@ public sealed class SanctionsEntry
         Title = title;
         Remarks = remarks;
         DatesOfBirth = RemarksParser.ParseDatesOfBirth(remarks);
+        Identifiers = RemarksParser.ParseIdentifiers(remarks);
     }
 
     /// <summary>OFAC's unique entry number (ent_num).</summary>
@@ -154,6 +196,9 @@ public sealed class SanctionsEntry
 
     /// <summary>Dates of birth parsed from <see cref="Remarks"/>.</summary>
     public IReadOnlyList<PartialDate> DatesOfBirth { get; }
+
+    /// <summary>Email addresses, websites, phone numbers and crypto addresses parsed from <see cref="Remarks"/>.</summary>
+    public IReadOnlyList<SanctionsIdentifier> Identifiers { get; }
 
     /// <summary>Alternate names.</summary>
     public IList<SanctionsAlias> Aliases { get; } = new List<SanctionsAlias>();
