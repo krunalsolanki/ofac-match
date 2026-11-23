@@ -5,13 +5,15 @@ namespace OfacMatch.Data;
 
 /// <summary>
 /// The OFAC SDN list loaded into memory. Load it from OFAC's legacy flat files
-/// (SDN.CSV, ALT.CSV, ADD.CSV) on disk, from streams, or straight from OFAC's
+/// (SDN.CSV, ALT.CSV, ADD.CSV and SDN_COMMENTS.CSV) on disk, from streams, or straight from OFAC's
 /// Sanctions List Service.
 /// </summary>
 public sealed class SanctionsList
 {
     /// <summary>Base address of OFAC's Sanctions List Service exports.</summary>
     public const string DefaultBaseUrl = "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/";
+
+    private const string CommentsFile = "SDN_COMMENTS.CSV";
 
     /// <summary>User-Agent sent with downloads when the <see cref="HttpClient"/> has none of its own.</summary>
     public const string UserAgent = "OfacMatch/0.1 (+https://github.com/krunalsolanki/ofac-match)";
@@ -28,12 +30,22 @@ public sealed class SanctionsList
     /// <summary>When this copy of the list was loaded. Screen against a current copy: OFAC updates the list often.</summary>
     public DateTimeOffset LoadedAt { get; }
 
-    /// <summary>Loads the list from the three legacy flat files. Aliases and addresses are optional.</summary>
+    /// <summary>Loads the list from the legacy flat files. Aliases and addresses are optional.</summary>
     /// <exception cref="InvalidDataException">The SDN data has no entries, so it is not an SDN file.</exception>
-    public static SanctionsList Load(TextReader sdn, TextReader? alt = null, TextReader? add = null)
+    public static SanctionsList Load(TextReader sdn, TextReader? alt = null, TextReader? add = null) =>
+        Load(sdn, alt, add, comments: null);
+
+    /// <summary>
+    /// Loads the list from the legacy flat files, including SDN_COMMENTS.CSV. SDN.CSV cuts remarks off at
+    /// 1,000 characters; SDN_COMMENTS.CSV holds the rest, which often includes identifiers such as email
+    /// addresses and websites. Aliases, addresses and comments are optional.
+    /// </summary>
+    /// <exception cref="InvalidDataException">The SDN data has no entries, so it is not an SDN file.</exception>
+    public static SanctionsList Load(TextReader sdn, TextReader? alt, TextReader? add, TextReader? comments)
     {
         Guard.NotNull(sdn, nameof(sdn));
 
+        var overflow = ReadComments(comments);
         var entries = new List<SanctionsEntry>();
         var byId = new Dictionary<int, SanctionsEntry>();
 
@@ -50,7 +62,7 @@ public sealed class SanctionsList
                 ParseType(Field(row, 2)),
                 SplitPrograms(Field(row, 3)),
                 Field(row, 4),
-                Field(row, 11));
+                overflow.TryGetValue(id, out var rest) ? Field(row, 11) + rest : Field(row, 11));
             entries.Add(entry);
             byId[id] = entry;
         }
@@ -89,7 +101,7 @@ public sealed class SanctionsList
         return new SanctionsList(entries, DateTimeOffset.UtcNow);
     }
 
-    /// <summary>Loads SDN.CSV, and ALT.CSV and ADD.CSV when present, from a folder.</summary>
+    /// <summary>Loads SDN.CSV, and ALT.CSV, ADD.CSV and SDN_COMMENTS.CSV when present, from a folder.</summary>
     /// <exception cref="ArgumentException"><paramref name="directory"/> is empty.</exception>
     /// <exception cref="DirectoryNotFoundException">The folder does not exist.</exception>
     /// <exception cref="FileNotFoundException">The folder has no SDN.CSV.</exception>
@@ -110,11 +122,12 @@ public sealed class SanctionsList
             ?? throw new FileNotFoundException("SDN.CSV not found.", Path.Combine(directory, "SDN.CSV"));
         using var alt = OpenText(Path.Combine(directory, "ALT.CSV"));
         using var add = OpenText(Path.Combine(directory, "ADD.CSV"));
-        return Load(sdn, alt, add);
+        using var comments = OpenText(Path.Combine(directory, CommentsFile));
+        return Load(sdn, alt, add, comments);
     }
 
     /// <summary>
-    /// Downloads SDN.CSV, ALT.CSV and ADD.CSV from OFAC's Sanctions List Service and loads them.
+    /// Downloads SDN.CSV, ALT.CSV, ADD.CSV and SDN_COMMENTS.CSV from OFAC's Sanctions List Service and loads them.
     /// When <paramref name="saveToDirectory"/> is given, the files are also saved there for offline use,
     /// but only after they load successfully, so a bad download never replaces a good copy.
     /// </summary>
@@ -147,8 +160,13 @@ public sealed class SanctionsList
         var sdn = await DownloadTextAsync(httpClient, baseUrl + "SDN.CSV", cancellationToken).ConfigureAwait(false);
         var alt = await DownloadTextAsync(httpClient, baseUrl + "ALT.CSV", cancellationToken).ConfigureAwait(false);
         var add = await DownloadTextAsync(httpClient, baseUrl + "ADD.CSV", cancellationToken).ConfigureAwait(false);
+        var comments = await DownloadOptionalTextAsync(httpClient, baseUrl + CommentsFile, cancellationToken).ConfigureAwait(false);
 
-        var list = Load(new StringReader(sdn), new StringReader(alt), new StringReader(add));
+        var list = Load(
+            new StringReader(sdn),
+            new StringReader(alt),
+            new StringReader(add),
+            comments is null ? null : new StringReader(comments));
 
         if (saveToDirectory is not null)
         {
@@ -156,12 +174,30 @@ public sealed class SanctionsList
             File.WriteAllText(Path.Combine(saveToDirectory, "SDN.CSV"), sdn, Encoding.UTF8);
             File.WriteAllText(Path.Combine(saveToDirectory, "ALT.CSV"), alt, Encoding.UTF8);
             File.WriteAllText(Path.Combine(saveToDirectory, "ADD.CSV"), add, Encoding.UTF8);
+            var commentsPath = Path.Combine(saveToDirectory, CommentsFile);
+            if (comments is not null)
+            {
+                File.WriteAllText(commentsPath, comments, Encoding.UTF8);
+            }
+            else if (File.Exists(commentsPath))
+            {
+                // Don't pair an old comments file with a new SDN.CSV.
+                File.Delete(commentsPath);
+            }
         }
 
         return list;
     }
 
-    private static async Task<string> DownloadTextAsync(HttpClient client, string url, CancellationToken ct)
+    private static async Task<string> DownloadTextAsync(HttpClient client, string url, CancellationToken ct) =>
+        await DownloadTextAsync(client, url, optional: false, ct).ConfigureAwait(false)
+        ?? throw new InvalidOperationException("Unreachable: a required download returned nothing.");
+
+    // SDN_COMMENTS.CSV only adds detail, so for it a missing file (404) returns null. Other failures still throw.
+    private static Task<string?> DownloadOptionalTextAsync(HttpClient client, string url, CancellationToken ct) =>
+        DownloadTextAsync(client, url, optional: true, ct);
+
+    private static async Task<string?> DownloadTextAsync(HttpClient client, string url, bool optional, CancellationToken ct)
     {
         // OFAC's service answers 403 Forbidden to requests without a User-Agent,
         // which HttpClient does not send by default.
@@ -172,6 +208,11 @@ public sealed class SanctionsList
         }
 
         using var response = await client.SendAsync(request, HttpCompletionOption.ResponseContentRead, ct).ConfigureAwait(false);
+        if (optional && response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
         response.EnsureSuccessStatusCode();
         var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
         return Encoding.UTF8.GetString(bytes);
@@ -181,6 +222,27 @@ public sealed class SanctionsList
         File.Exists(path) ? new StreamReader(path, Encoding.UTF8, detectEncodingFromByteOrderMarks: true) : null;
 
     private static string? Field(string?[] row, int index) => index < row.Length ? row[index] : null;
+
+    // SDN_COMMENTS.CSV rows are (ent_num, the rest of the remarks). The text continues mid-word,
+    // so it is appended as is, without a separator.
+    private static Dictionary<int, string> ReadComments(TextReader? comments)
+    {
+        var overflow = new Dictionary<int, string>();
+        if (comments is null)
+        {
+            return overflow;
+        }
+
+        foreach (var row in CsvReader.Read(comments))
+        {
+            if (TryParseId(row, out var id) && Field(row, 1) is string text)
+            {
+                overflow[id] = overflow.TryGetValue(id, out var earlier) ? earlier + text : text;
+            }
+        }
+
+        return overflow;
+    }
 
     private static bool TryParseId(string?[] row, out int id) =>
         int.TryParse(Field(row, 0), NumberStyles.Integer, CultureInfo.InvariantCulture, out id);

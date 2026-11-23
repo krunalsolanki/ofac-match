@@ -12,7 +12,7 @@ OfacMatch does not collect, store or send any personal data. The names, years of
 
 The only network request OfacMatch makes is to download the public Specially Designated Nationals (SDN) list from the U.S. Treasury's Office of Foreign Assets Control:
 
-- `https://sanctionslistservice.ofac.treas.gov` (files SDN.CSV, ALT.CSV and ADD.CSV)
+- `https://sanctionslistservice.ofac.treas.gov` (files SDN.CSV, ALT.CSV, ADD.CSV and SDN_COMMENTS.CSV)
 
 That request contains no screening data; it is a plain file download with the User-Agent `OfacMatch/0.1 (+https://github.com/krunalsolanki/ofac-match)`. OFAC's own [privacy policy](https://home.treasury.gov/footer/privacy-act) applies to it. If you point the MCP server at an offline copy of the list (`OFACMATCH_DATA_DIR`), it makes no network requests at all.
 

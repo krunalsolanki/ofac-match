@@ -52,7 +52,7 @@ No API keys or environment variables are needed. Optional settings:
 
 | Variable | Purpose |
 |---|---|
-| `OFACMATCH_DATA_DIR` | A folder with SDN.CSV, ALT.CSV and ADD.CSV to use offline instead of downloading |
+| `OFACMATCH_DATA_DIR` | A folder with SDN.CSV, ALT.CSV and ADD.CSV (and SDN_COMMENTS.CSV if you have it) to use offline instead of downloading |
 | `OFACMATCH_CACHE_DIR` | Where the downloaded list is cached |
 | `OFACMATCH_REFRESH_HOURS` | How old the cached list may get before it is downloaded again (default 24) |
 

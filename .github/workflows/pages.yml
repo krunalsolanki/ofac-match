@@ -44,6 +44,13 @@ jobs:
             curl -fsSL --retry 3 -A "OfacMatch/0.1 (+https://github.com/krunalsolanki/ofac-match)" \
               -o "$data/$file" "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/$file"
           done
+          # SDN_COMMENTS.CSV holds remarks that SDN.CSV cuts off at 1,000 characters. It only adds
+          # detail, so publish an empty one rather than fail if OFAC stops serving it.
+          if ! curl -fsSL --retry 3 -A "OfacMatch/0.1 (+https://github.com/krunalsolanki/ofac-match)" \
+              -o "$data/SDN_COMMENTS.CSV" "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN_COMMENTS.CSV"; then
+            echo "::warning::SDN_COMMENTS.CSV could not be downloaded; publishing without it."
+            : > "$data/SDN_COMMENTS.CSV"
+          fi
           # Stop rather than publish an empty or broken list (e.g. an HTML error page).
           entries=$(wc -l < "$data/SDN.CSV")
           if [ "$entries" -lt 10000 ] || ! head -c 1 "$data/SDN.CSV" | grep -q '[0-9]'; then

@@ -101,7 +101,7 @@ var matches = screener.Screen(request);
 ### Offline use
 
 ```csharp
-var list = SanctionsList.LoadFromDirectory("ofac-data"); // SDN.CSV, ALT.CSV, ADD.CSV
+var list = SanctionsList.LoadFromDirectory("ofac-data"); // SDN.CSV, ALT.CSV, ADD.CSV, SDN_COMMENTS.CSV
 ```
 
 OFAC updates the list often. Reload it at least daily, and screen against the current list before every decision.

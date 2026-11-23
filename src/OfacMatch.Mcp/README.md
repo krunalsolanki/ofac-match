@@ -79,7 +79,7 @@ The first call downloads the list from OFAC (about 8 MB) and takes a few seconds
 
 | Environment variable | Default | Description |
 |---|---|---|
-| `OFACMATCH_DATA_DIR` | none | Folder with SDN.CSV, ALT.CSV and ADD.CSV to use offline. When set, nothing is downloaded. |
+| `OFACMATCH_DATA_DIR` | none | Folder with SDN.CSV, ALT.CSV and ADD.CSV (and optionally SDN_COMMENTS.CSV) to use offline. When set, nothing is downloaded. |
 | `OFACMATCH_CACHE_DIR` | `%LOCALAPPDATA%/OfacMatch/sdn` | Where downloaded files are cached. |
 | `OFACMATCH_REFRESH_HOURS` | 24 | How old the cached list may get before it is downloaded again. |
 

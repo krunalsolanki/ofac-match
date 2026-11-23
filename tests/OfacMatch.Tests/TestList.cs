@@ -23,6 +23,13 @@ internal static class TestList
         "101,2,\"1 Harbor Road\",\"Port City\",\"Sylvania\",-0- \r\n" +
         "\u001a";
 
+    /// <summary>The overflow text for entry 104, as SDN_COMMENTS.CSV publishes it.</summary>
+    public const string CommentsTail = " Website www.oneil-example.test.";
+
+    public const string Comments =
+        "104,\"" + CommentsTail + "\"\r\n" +
+        "\u001a";
+
     public static SanctionsList Load() =>
         SanctionsList.Load(new StringReader(Sdn), new StringReader(Alt), new StringReader(Add));
 }

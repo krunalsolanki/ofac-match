@@ -14,11 +14,15 @@ All notable changes are listed here. The project follows [Semantic Versioning](h
 
 ### Changed
 
+- The list loader also reads `SDN_COMMENTS.CSV`. SDN.CSV cuts an entry's remarks off at 1,000 characters, and OFAC publishes the rest in that file; 36 entries are affected, most of them listing email addresses, websites or crypto addresses near the end. `DownloadAsync` fetches it (a missing file is skipped), `LoadFromDirectory` reads it when present, and the web page uses it. `SanctionsList.Load` has a new overload that takes it.
+
 - Screening is about 4 times faster with the same scores and matches. Each distinct listed name part is compared once per search, names that cannot reach the minimum score are dropped before pairing, and the whole-name comparison is skipped when the guard means it would not count.
 
 ## [2.0.0] - 2026-11-04
 
 ### Changed
+
+- The list loader also reads `SDN_COMMENTS.CSV`. SDN.CSV cuts an entry's remarks off at 1,000 characters, and OFAC publishes the rest in that file; 36 entries are affected, most of them listing email addresses, websites or crypto addresses near the end. `DownloadAsync` fetches it (a missing file is skipped), `LoadFromDirectory` reads it when present, and the web page uses it. `SanctionsList.Load` has a new overload that takes it.
 
 - A search with more name parts than a listed name of two or more parts (an extra middle name, for example) is also scored from the listed name's side, reduced slightly for the extra parts (`ScoringOptions.ExtraPartPenalty`, default 0.1, chosen on a development set; see `docs/evaluation-protocol.md`). On the development set, searches with an extra middle name are found at a threshold of 85 in 100% of cases, against 19.3% before. Two-part searches score as before; three-part ordinary names alert more often at 85 (22.5% against 6.8%). Set `ScoringOptions.AllowExtraSearchedParts = false` for the previous behaviour.
 
@@ -62,6 +66,8 @@ All notable changes are listed here. The project follows [Semantic Versioning](h
 - The command-line sample reports missing or invalid option values and unknown options instead of crashing.
 
 ### Changed
+
+- The list loader also reads `SDN_COMMENTS.CSV`. SDN.CSV cuts an entry's remarks off at 1,000 characters, and OFAC publishes the rest in that file; 36 entries are affected, most of them listing email addresses, websites or crypto addresses near the end. `DownloadAsync` fetches it (a missing file is skipped), `LoadFromDirectory` reads it when present, and the web page uses it. `SanctionsList.Load` has a new overload that takes it.
 
 - Cleaned up project credits and evaluation wording.
 

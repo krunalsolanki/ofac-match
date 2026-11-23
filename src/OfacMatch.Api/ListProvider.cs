@@ -7,7 +7,7 @@ namespace OfacMatch.Api;
 /// <summary>Where the SDN list comes from. Read from configuration, which includes environment variables.</summary>
 public sealed class ListSettings
 {
-    /// <summary>OFACMATCH_DATA_DIR: a folder with SDN.CSV, ALT.CSV and ADD.CSV to use offline. Never downloads when set.</summary>
+    /// <summary>OFACMATCH_DATA_DIR: a folder with SDN.CSV, ALT.CSV and ADD.CSV (SDN_COMMENTS.CSV optional) to use offline. Never downloads when set.</summary>
     public string? DataDirectory { get; init; }
 
     /// <summary>OFACMATCH_CACHE_DIR: where downloaded files are kept.</summary>

@@ -36,7 +36,7 @@ The server is the [OfacMatch.Mcp](https://www.nuget.org/packages/OfacMatch.Mcp) 
 ## What it runs, sends and fetches
 
 - **Runs:** `dnx OfacMatch.Mcp@2.0.0 --yes`, which downloads that exact package version from nuget.org the first time and starts it on your computer.
-- **Fetches:** the public SDN list (SDN.CSV, ALT.CSV, ADD.CSV) from OFAC's Sanctions List Service at `https://sanctionslistservice.ofac.treas.gov`, cached on your computer for 24 hours.
+- **Fetches:** the public SDN list (SDN.CSV, ALT.CSV, ADD.CSV, SDN_COMMENTS.CSV) from OFAC's Sanctions List Service at `https://sanctionslistservice.ofac.treas.gov`, cached on your computer for 24 hours.
 - **Sends:** nothing. The names you screen are processed locally and never leave your computer.
 
 Source code: https://github.com/krunalsolanki/ofac-match

@@ -22,6 +22,29 @@ public class DataTests
     }
 
     [Fact]
+    public void Load_appends_SDN_COMMENTS_to_cut_off_remarks()
+    {
+        // SDN.CSV stops mid-word at 1,000 characters; SDN_COMMENTS.CSV continues the same text.
+        const string sdn = "200,\"EXAMPLE MACHINERY CO.\",-0- ,\"SDGT\",-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,\"Website www.exam\"\r\n";
+        const string comments =
+            "200,\"ple-machinery.test; Email Address\"\r\n" +
+            "999,\"not on the list\"\r\n" +
+            "200,\" sales@example-machinery.test.\"\r\n\u001a";
+
+        var list = SanctionsList.Load(new StringReader(sdn), null, null, new StringReader(comments));
+
+        Assert.Equal(
+            "Website www.example-machinery.test; Email Address sales@example-machinery.test.",
+            Assert.Single(list.Entries).Remarks);
+    }
+
+    [Fact]
+    public void Load_without_comments_keeps_remarks_as_published()
+    {
+        Assert.Equal("DOB Jun 1980.", TestList.Load().Entries.Single(e => e.Id == 104).Remarks);
+    }
+
+    [Fact]
     public void Load_reads_entries_aliases_and_addresses()
     {
         var list = TestList.Load();

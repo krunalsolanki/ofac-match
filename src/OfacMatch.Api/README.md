@@ -23,7 +23,7 @@ dotnet run --project src/OfacMatch.Api -c Release
 | Environment variable | Meaning | Default |
 |---|---|---|
 | `OFACMATCH_API_KEY` | If set, every `/v1` request needs the header `X-Api-Key: <key>`. `/health` stays open. | not set |
-| `OFACMATCH_DATA_DIR` | Folder with your own `SDN.CSV`, `ALT.CSV` and `ADD.CSV`. Nothing is downloaded when set. | not set |
+| `OFACMATCH_DATA_DIR` | Folder with your own `SDN.CSV`, `ALT.CSV` and `ADD.CSV` (and `SDN_COMMENTS.CSV`, optional). Nothing is downloaded when set. | not set |
 | `OFACMATCH_CACHE_DIR` | Where the downloaded list is kept. Mount a volume here to keep it between restarts. | `/home/app/ofacmatch` in Docker |
 | `OFACMATCH_REFRESH_HOURS` | How old the downloaded list may get before it is downloaded again. | `24` |
 | `ASPNETCORE_HTTP_PORTS` | Port to listen on. | `8080` in Docker |

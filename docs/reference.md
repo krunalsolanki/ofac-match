@@ -6,8 +6,8 @@ All public types live in two namespaces: `OfacMatch.Data` (the list) and `OfacMa
 
 | Member | Description |
 |---|---|
-| `DownloadAsync(HttpClient, saveToDirectory?, baseUrl?, cancellationToken?)` | Downloads SDN.CSV, ALT.CSV and ADD.CSV from OFAC's Sanctions List Service. Optionally saves them for offline use. |
-| `LoadFromDirectory(string)` | Loads SDN.CSV, and ALT.CSV and ADD.CSV when present, from a folder. |
+| `DownloadAsync(HttpClient, saveToDirectory?, baseUrl?, cancellationToken?)` | Downloads SDN.CSV, ALT.CSV, ADD.CSV and SDN_COMMENTS.CSV from OFAC's Sanctions List Service. Optionally saves them for offline use. |
+| `LoadFromDirectory(string)` | Loads SDN.CSV, and ALT.CSV, ADD.CSV and SDN_COMMENTS.CSV when present, from a folder. |
 | `Load(TextReader sdn, TextReader? alt, TextReader? add)` | Loads from any readers, e.g. files from your own storage. Throws `InvalidDataException` if the SDN data has no entries. |
 | `Entries` | All entries (`SanctionsEntry`). |
 | `LoadedAt` | When this copy was loaded. |

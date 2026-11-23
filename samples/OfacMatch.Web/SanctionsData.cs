@@ -29,9 +29,14 @@ public sealed class SanctionsData(HttpClient http)
         var files = await Task.WhenAll(
             http.GetStringAsync("data/SDN.CSV"),
             http.GetStringAsync("data/ALT.CSV"),
-            http.GetStringAsync("data/ADD.CSV"));
+            http.GetStringAsync("data/ADD.CSV"),
+            http.GetStringAsync("data/SDN_COMMENTS.CSV"));
 
-        var list = SanctionsList.Load(new StringReader(files[0]), new StringReader(files[1]), new StringReader(files[2]));
+        var list = SanctionsList.Load(
+            new StringReader(files[0]),
+            new StringReader(files[1]),
+            new StringReader(files[2]),
+            new StringReader(files[3]));
         Entries = list.Entries.Count;
         Aliases = list.Entries.Sum(e => e.Aliases.Count);
         return new SanctionsScreener(list);

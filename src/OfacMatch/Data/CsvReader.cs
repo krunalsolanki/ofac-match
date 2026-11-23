@@ -3,7 +3,7 @@ using System.Text;
 namespace OfacMatch.Data;
 
 /// <summary>
-/// Minimal RFC 4180 reader for OFAC's legacy flat files (SDN.CSV, ALT.CSV, ADD.CSV).
+/// Minimal RFC 4180 reader for OFAC's legacy flat files (SDN.CSV, ALT.CSV, ADD.CSV, SDN_COMMENTS.CSV).
 /// Handles quoted fields, escaped quotes, line breaks inside quotes, the trailing
 /// end-of-file marker (0x1A) and OFAC's "-0-" null marker.
 /// </summary>

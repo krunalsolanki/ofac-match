@@ -6,7 +6,7 @@ using OfacMatch.Api;
 // OfacMatch REST API: self-hosted, so the names you screen stay on your own server.
 //
 // Settings (environment variables):
-//   OFACMATCH_DATA_DIR       folder with SDN.CSV, ALT.CSV, ADD.CSV to use offline (never downloads)
+//   OFACMATCH_DATA_DIR       folder with SDN.CSV, ALT.CSV, ADD.CSV (+ optional SDN_COMMENTS.CSV) to use offline (never downloads)
 //   OFACMATCH_CACHE_DIR      where the downloaded list is kept
 //   OFACMATCH_REFRESH_HOURS  how old the list may get before it is downloaded again (default 24)
 //   OFACMATCH_API_KEY        if set, every /v1 request needs the header "X-Api-Key: <key>"
