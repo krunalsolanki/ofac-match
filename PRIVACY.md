@@ -1,12 +1,12 @@
 # Privacy Policy
 
-Last updated: 3 November 2026
+Last updated: 23 November 2026
 
 This policy covers everything published from this repository: the `OfacMatch` .NET library, the `OfacMatch.Mcp` MCP server (from NuGet, the Claude Desktop extension or the Claude plugin), the command-line sample and the try-it web page.
 
 ## Data collection
 
-OfacMatch does not collect, store or send any personal data. The names, years of birth and countries you screen are processed on your own computer (or, for the web page, inside your browser) and are never sent to the author or to anyone else. There is no account, no analytics, no telemetry and no tracking.
+OfacMatch does not collect, store or send any personal data. The names, years of birth and countries you screen are processed on your own computer (or, for the web page, inside your browser) and are never sent to the author or to anyone else. There is no account, no telemetry and no tracking. The library, the MCP server and the command-line sample have no analytics at all; the web page counts visits only, as described below.
 
 ## Network use
 
@@ -18,13 +18,15 @@ That request contains no screening data; it is a plain file download with the Us
 
 The web page is hosted on GitHub Pages and loads a copy of the list from there, so GitHub's [privacy statement](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement) applies to visiting it. What you type into the page stays in your browser.
 
+The web page also counts visits with [GoatCounter](https://www.goatcounter.com/), a privacy-friendly counter that sets no cookies. For each visit it receives the page address, the referring site, the browser type and screen size, and an approximate country derived from your IP address; the IP address itself is not stored. It never receives the names, years of birth, countries or files you screen, because those never leave your browser. GoatCounter's [privacy policy](https://www.goatcounter.com/help/privacy) applies to it. Browsers or extensions that block counters can block it; the page works the same without it.
+
 ## Storage
 
 The MCP server caches the downloaded SDN list on your computer so it doesn't download it on every call: `%LOCALAPPDATA%\OfacMatch\sdn` on Windows, `~/Library/Application Support/OfacMatch/sdn` on macOS and `~/.local/share/OfacMatch/sdn` on Linux, or the folder set in `OFACMATCH_CACHE_DIR`. The cache holds only OFAC's public list, never your searches. Delete the folder at any time to remove it.
 
 ## Sharing with third parties
 
-None. OfacMatch has no servers of its own and shares nothing with anyone.
+None. OfacMatch has no servers of its own and shares no screening data with anyone. The web page's visit counter is described under Network use.
 
 When you use the MCP server through an AI assistant such as Claude, the assistant sees the names you ask it to screen and the results, under that assistant's own privacy terms. That exchange is between you and the assistant's provider; OfacMatch adds nothing to it.
 

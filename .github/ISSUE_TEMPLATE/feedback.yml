@@ -1,0 +1,52 @@
+name: Feedback
+description: Tell us how you use OfacMatch, what worked and what's missing
+title: "Feedback: "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying OfacMatch. A few lines are enough. Please don't paste real customer names; made-up examples are fine.
+  - type: dropdown
+    id: use
+    attributes:
+      label: What did you screen?
+      options:
+        - Customers or borrowers
+        - Vendors or suppliers
+        - Grantees or donors
+        - Employees or contractors
+        - Just trying it out
+        - Something else
+    validations:
+      required: true
+  - type: dropdown
+    id: how
+    attributes:
+      label: How did you use it?
+      options:
+        - Web page (one name)
+        - Web page (CSV list)
+        - REST API / Docker
+        - Python client
+        - .NET library
+        - MCP server (AI assistant)
+  - type: input
+    id: org
+    attributes:
+      label: Type of organization (optional)
+      placeholder: e.g. title agency, credit union, nonprofit, fintech
+  - type: textarea
+    id: worked
+    attributes:
+      label: What worked well?
+  - type: textarea
+    id: missing
+    attributes:
+      label: What's missing or confusing?
+  - type: checkboxes
+    id: quote
+    attributes:
+      label: Quote
+      options:
+        - label: It's OK to quote one sentence of this feedback (I'll ask before using your name or organization)

@@ -304,3 +304,17 @@ label.inline { display: inline-flex; gap: 6px; align-items: center; font-size: 0
     .loading-progress-text:after {
         content: var(--blazor-load-percentage-text, "Loading");
     }
+
+.feedback {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 14px 0;
+    padding: 10px 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--text);
+}

@@ -244,7 +244,7 @@ Built by [Krunal Solanki](https://github.com/krunalsolanki). The idea and the co
 
 ## Privacy Policy
 
-OfacMatch collects nothing. Names you screen are processed on your own computer, or in your browser for the web page, and are never sent anywhere. The only network request is the download of the public SDN list from OFAC, which is cached locally. Full details: [PRIVACY.md](https://github.com/krunalsolanki/ofac-match/blob/main/PRIVACY.md).
+OfacMatch never collects the names you screen. They are processed on your own computer, or in your browser for the web page, and are never sent anywhere. The library and MCP server make one network request, the download of the public SDN list from OFAC, which is cached locally. The web page also counts visits (no cookies, no screening data). Full details: [PRIVACY.md](https://github.com/krunalsolanki/ofac-match/blob/main/PRIVACY.md).
 
 ## Data
 

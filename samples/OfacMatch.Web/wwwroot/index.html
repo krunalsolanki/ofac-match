@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OfacMatch – try OFAC name screening</title>
-    <meta name="description" content="Screen a name against the OFAC SDN sanctions list in your browser and see why it matched. Free, open source, nothing is sent anywhere." />
+    <meta name="description" content="Screen a name against the OFAC SDN sanctions list in your browser and see why it matched. Free and open source; the names you screen never leave your browser." />
     <base href="/" />
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="css/app.css" />
@@ -52,6 +52,8 @@
         };
     </script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <!-- Counts page visits only (GoatCounter: no cookies, no names, no files). The names you screen are never sent. -->
+    <script data-goatcounter="https://ofacmatch.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 
 </html>

@@ -1,0 +1,17 @@
+@* Asks people who used the page to say so. Both links open other sites; nothing from the page is sent. *@
+<aside class="feedback">
+    <strong>@Title</strong>
+    <span>
+        Tell me what worked and what's missing:
+        <a href="@LinkedInUrl" target="_blank" rel="noopener">message me on LinkedIn</a>
+        or <a href="@FeedbackFormUrl" target="_blank" rel="noopener">leave feedback on GitHub</a>.
+        It takes a minute, and it decides what gets built next.
+    </span>
+</aside>
+
+@code {
+    public const string LinkedInUrl = "https://www.linkedin.com/in/krunalsolanki/";
+    public const string FeedbackFormUrl = "https://github.com/krunalsolanki/ofac-match/issues/new?template=feedback.yml";
+
+    [Parameter] public string Title { get; set; } = "Using OfacMatch?";
+}
