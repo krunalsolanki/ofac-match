@@ -108,6 +108,25 @@ Searched: **Ayman James Al Zawahiri**. Listed: **AL ZAWAHIRI, Dr. Ayman**.
 
 **Final score: 97.5, by name parts, scored from the listed name.** In version 0.1.2 this pair scored 75.0, and the entry's best score was 84.3 through an alias, just below a threshold of 85.
 
+## Emails, phone numbers, websites and crypto addresses
+
+OFAC lists these in many entries' remarks (on the list of 23 November 2026: 370 emails, 1,306 websites, 185 phone and fax numbers, and 1,075 crypto addresses in 20 currencies). SDN.CSV cuts remarks off at 1,000 characters, so OfacMatch also reads `SDN_COMMENTS.CSV`, where OFAC publishes the rest; without it, about half of the crypto addresses would be missed.
+
+They are not scored. Two identifiers are the same or they are not, and fuzzy matching would bring back the false alerts it is meant to avoid. Each is normalized and compared exactly, with two looser levels:
+
+| You give | Normalized | Matches |
+|---|---|---|
+| Email | lower case, `mailto:` removed | **Exact**: a listed email. **Same domain**: the domain of a listed *website* (`sales@yolimachine.com` against `www.yolimachine.com`). Never the domain of a listed email, which is often a webmail or ISP domain shared by millions. |
+| Website | lower case; `http(s)://`, `www.`, port and trailing `/` removed | **Exact**: the same page. **Same domain**: the listed site's domain or a subdomain of it. |
+| Phone or fax | digits only; `(0)` and a leading `00` removed; at least 7 digits | **Exact**: the same digits. **Same number ending**: the same last 9 digits, so `158 1535 1839` matches the listed `8615815351839`. |
+| Crypto address | trimmed; `0x`, `bc1` and `ltc1` addresses in lower case, others case-sensitive | **Exact** only. |
+
+Two kinds of website never count by domain: shared platforms (a listed `facebook.com/somepage` or `t.me/channel` matches only that page, and a listed `name.wixsite.com` never flags `wixsite.com`), and a page on a university or government site (a listed `university.edu/~someone` doesn't flag the university).
+
+An identifier match is returned even when the name scores below the threshold, and it is never filtered by entry type: a borrower's email on a listed company's domain is worth a look. It never lowers or hides a name match. The match keeps its name score, so a reviewer sees how far apart the names are.
+
+Measured on the list of 23 November 2026: every one of the 2,936 listed identifiers, given as input, finds its own entry; 5,000 made-up emails, 5,000 websites and 5,000 phone numbers in common formats raised no alerts; and 2,000 lookups take about 3 ms.
+
 ## What scores do not tell you
 
 A score measures how alike two names are written. It says nothing about whether two records describe the same person. "Ivan Hernandez" scores 100 against a listed "HERNANDEZ, Ivan" even if they are different people. That is why OfacMatch reports date-of-birth and country conflicts, and why a person must review every potential match. See [Using OfacMatch responsibly](compliance-notes.md).

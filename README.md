@@ -44,11 +44,13 @@ OfacMatch downloads the Specially Designated Nationals (SDN) list from OFAC, scr
 
 It handles the messy parts of real names: accents, `LAST, First` ordering, apostrophes and hyphens, titles like "Dr.", company endings like LLC or LTD (even misspelled), and aliases. If you pass a year of birth or country that disagrees with the listed record, the match is flagged rather than hidden, because that call belongs to a person.
 
+It also checks the email addresses, phone numbers, websites and crypto addresses that OFAC lists for many entries. These often stay the same when a party changes its name: in OFAC's 2026 settlement with Pegasus Worldwide Logistics, a supplier traded under a new name but kept the email address and phone number on its SDN entry. Give an email, phone, website or crypto address with the name, and an entry that lists it is returned even when the names look nothing alike.
+
 It has no dependencies, runs inside your own process (names never leave your systems), and works on modern .NET as well as .NET Framework 4.7.2+.
 
 I measured it on the real list rather than guessing, on names it was never tuned on: at a threshold of 85 it finds all 4,235 realistic variations of listed names in a held-out test, and 99.6% of 2,160 harder ones such as a wrong first letter, a nickname or an extra middle name. It is also compared with eight standard name-matching methods. The [results](#results-on-the-real-sdn-list) below have the details, including where a simpler method does better.
 
-Version 2.0 changes how a searched name with extra parts is scored; see the [changelog](https://github.com/krunalsolanki/ofac-match/blob/main/CHANGELOG.md). Feedback, bug reports and name variations that score badly are very welcome.
+Version 2.1 adds screening by email, phone, website and crypto address. Version 2.0 changed how a searched name with extra parts is scored; see the [changelog](https://github.com/krunalsolanki/ofac-match/blob/main/CHANGELOG.md). Feedback, bug reports and name variations that score badly are very welcome.
 
 > OfacMatch helps you screen; it doesn't make compliance decisions and isn't legal advice. A score says how alike two names are written, not whether two records are the same person. Pick your threshold from your own risk assessment and have someone review every potential match. More in [Using OfacMatch responsibly](https://github.com/krunalsolanki/ofac-match/blob/main/docs/compliance-notes.md).
 
@@ -93,9 +95,19 @@ var request = new ScreeningRequest("John Michael Doe")
     Type = EntryType.Individual, // a borrower is a person, so skip companies and vessels
     YearOfBirth = 1971,          // flags matches whose listed dates of birth disagree
     Country = "United States",   // flags matches whose listed addresses are all elsewhere
+    Email = "j.doe@example.com", // also matched against the emails and websites OFAC lists
+    Phone = "+1 555 0100",       // any format; compared digit by digit
 };
 
 var matches = screener.Screen(request);
+```
+
+A match found by an email, phone, website or crypto address has `MatchedBy` set to `Identifier` (or `NameAndIdentifier`), lists what matched in `IdentifierMatches`, and comes first. To check one value without a name: `screener.ScreenIdentifier(IdentifierType.Email, "sales@example.com")`. For a supplier that changed its name but kept its website domain, `Explain()` starts with:
+
+```text
+Identifier match; name score 36.4 via NameParts against Primary name "YOULI TECHNOLOGY DEVELOPMENT CO., LTD."
+  Entry 41376: YOULI TECHNOLOGY DEVELOPMENT CO., LTD. (Entity; programs: ILLICIT-DRUGS-EO14059)
+  Email sales@yolimachine.com has the same domain as listed Website www.yolimachine.com
 ```
 
 ### Offline use
@@ -208,6 +220,8 @@ Things I'd like to work on, roughly in order:
 - [ ] Catch typos at the start of company endings ("LTMITED")
 - [ ] Support OFAC's Consolidated (non-SDN) list and the Advanced XML format
 - [x] Faster screening (about 4 times faster, same results)
+- [x] Email, phone, website and crypto-address screening (2.1)
+- [ ] Passport, national ID, tax ID and vessel IMO numbers
 - [x] Self-hosted REST API in Docker
 - [x] A Python client for the REST API
 - [ ] A `dotnet tool` package
