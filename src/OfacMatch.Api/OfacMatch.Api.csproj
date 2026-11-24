@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>OfacMatch.Api</RootNamespace>
-    <Version>2.1.0</Version>
+    <Version>2.1.1</Version>
     <Authors>Krunal Solanki</Authors>
     <Description>Self-hosted REST API for explainable OFAC SDN name screening. Runs on your own server; names are never sent anywhere.</Description>
     <IsPackable>false</IsPackable>

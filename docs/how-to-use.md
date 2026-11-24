@@ -12,7 +12,7 @@ dotnet add package OfacMatch
 Or edit your .csproj:
 ```xml
 <ItemGroup>
-    <PackageReference Include="OfacMatch" Version="2.1.0" />
+    <PackageReference Include="OfacMatch" Version="2.1.1" />
 </ItemGroup>
 ```
 
