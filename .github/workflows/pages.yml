@@ -66,9 +66,9 @@ jobs:
       - name: Set the base path
         run: sed -i 's|<base href="/" />|<base href="/ofac-match/" />|' publish/wwwroot/index.html
 
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: publish/wwwroot
 
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
