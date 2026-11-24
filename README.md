@@ -7,6 +7,7 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-green)](https://github.com/krunalsolanki/ofac-match/blob/main/LICENSE)
 [![Software DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23926803.svg)](https://doi.org/10.5281/zenodo.23926803)
 [![Paper DOI](https://img.shields.io/badge/paper-10.5281%2Fzenodo.23930926-blue)](https://doi.org/10.5281/zenodo.23930926)
+[![krunalsolanki/ofac-match MCP server](https://glama.ai/mcp/servers/krunalsolanki/ofac-match/badges/score.svg)](https://glama.ai/mcp/servers/krunalsolanki/ofac-match)
 
 **Free, open-source OFAC sanctions name screening that tells you *why* a name matched, and runs on your own machine, so the names you screen never leave your systems.**
 
