@@ -8,7 +8,7 @@ Everything in the file is either public SDN data or made up. **Don't add real cu
 
 1. Download [samples/vendor-comparison.csv](https://github.com/krunalsolanki/ofac-match/blob/main/samples/vendor-comparison.csv). Columns: Case ID, Name, Year of birth, Country, Type, Email, Phone, Website, Crypto address.
 2. Screen it in your tool against the OFAC SDN list, at the threshold you normally use. If your tool has no email, phone, website or crypto field, screen the name only and note that.
-3. Optional: screen it in OfacMatch too. Open the [web page](https://krunalsolanki.github.io/ofac-match/), choose **A list of names (CSV)**, and upload the file. It runs in your browser; nothing is uploaded.
+3. Optional: see OfacMatch's result in one click: **https://krunalsolanki.github.io/ofac-match/?test=compare** screens the 25 names in your browser and scores them against the answer key below. Nothing is uploaded. The page also has a button to download the file.
 4. Compare with the answer key below.
 
 ## Send back three numbers

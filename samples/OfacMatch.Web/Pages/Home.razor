@@ -2,6 +2,7 @@
 @using OfacMatch.Data
 @using OfacMatch.Screening
 @inject SanctionsData Data
+@inject NavigationManager Navigation
 
 <PageTitle>OfacMatch – try OFAC name screening</PageTitle>
 
@@ -19,7 +20,7 @@
 
     @if (_batch)
     {
-        <BatchPanel />
+        <BatchPanel RunComparison="_runComparison" />
     }
     else
     {
@@ -208,6 +209,19 @@
 
 @code {
     private bool _batch;
+    private bool _runComparison;
+
+    // ?test=compare opens the list mode and runs the 25-name comparison test straight away.
+    protected override void OnInitialized()
+    {
+        var query = new Uri(Navigation.Uri).Query;
+        if (query.Contains("test=compare", StringComparison.OrdinalIgnoreCase))
+        {
+            _batch = true;
+            _runComparison = true;
+        }
+    }
+
     private string _name = "";
     private int? _yearOfBirth;
     private string _country = "";

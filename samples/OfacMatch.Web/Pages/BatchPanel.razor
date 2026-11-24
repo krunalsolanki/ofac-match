@@ -48,6 +48,7 @@
     <p class="examples">
         <button type="button" @onclick="TrySampleAsync" disabled="@_busy">Try a sample list</button>
         <button type="button" @onclick="DownloadTemplateAsync">Download a template</button>
+        <button type="button" @onclick="RunComparisonAsync" disabled="@_busy">Run the 25-name comparison test</button>
     </p>
 
     @if (_error is not null)
@@ -76,6 +77,46 @@
     {
         <p class="status" aria-live="polite">@_status</p>
         <progress max="@_total" value="@_done"></progress>
+    }
+
+    @if (_results is not null && _score is not null)
+    {
+        <section class="comparison" aria-label="Comparison test score">
+            <h2>Comparison test: how OfacMatch scored</h2>
+            <div class="summary">
+                <div class="ok"><strong>@_score.NamesFound of @_score.NamesTotal</strong> listed names found</div>
+                <div class="ok"><strong>@_score.IdentifiersFound of @_score.IdentifiersTotal</strong> renamed parties found by a listed detail</div>
+                <div class="@(_score.FalseAlerts == 0 ? "ok" : "conflicts")"><strong>@_score.FalseAlerts of @_score.OrdinaryTotal</strong> false alerts on ordinary names</div>
+            </div>
+            <p>
+                Now run the same 25 names through the screening tool you use, at your normal threshold, and compare.
+                The names are public SDN entries and made-up names; no customer data.
+            </p>
+            <p class="examples">
+                <button type="button" class="primary" @onclick="DownloadComparisonAsync">Download the test file (CSV)</button>
+                <a href="@ComparisonTest.GuideUrl" target="_blank" rel="noopener">Answer key and how to send your numbers</a>
+            </p>
+            <details>
+                <summary>Every case, with the expected answer</summary>
+                <table class="batch-results">
+                    <thead>
+                        <tr><th>Case</th><th>Kind</th><th>Name</th><th>Result</th><th>Detail</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in _score.Cases)
+                        {
+                            <tr class="@(c.Correct ? "" : c.Group == ComparisonTest.Group.Ordinary ? "row-conflicts" : "row-error")">
+                                <td>@c.CaseId</td>
+                                <td>@GroupName(c.Group)</td>
+                                <td>@c.Name</td>
+                                <td>@(c.Correct ? "✓ as expected" : c.Group == ComparisonTest.Group.Ordinary ? "False alert" : "✗ missed")</td>
+                                <td>@c.Detail</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </details>
+        </section>
     }
 
     @if (_results is not null)
@@ -160,6 +201,46 @@
 @code {
     private const int MaxShown = 500;
 
+    /// <summary>Run the comparison test as soon as the panel opens (the page was opened with ?test=compare).</summary>
+    [Parameter]
+    public bool RunComparison { get; set; }
+
+    private ComparisonTest.Score? _score;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && RunComparison)
+        {
+            await RunComparisonAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task RunComparisonAsync()
+    {
+        _error = null;
+        _results = null;
+        _minScore = 85;
+        _defaultType = "";
+        _fileName = "Comparison test (25 names)";
+        _input = BatchFile.Read(ComparisonTest.Csv);
+        await ScreenAsync();
+        if (_results is not null && !_stopped)
+        {
+            _score = ComparisonTest.Grade(_results);
+        }
+    }
+
+    private async Task DownloadComparisonAsync() =>
+        await JS.InvokeVoidAsync("ofacMatchDownload", ComparisonTest.FileName, ComparisonTest.Csv);
+
+    private static string GroupName(ComparisonTest.Group group) => group switch
+    {
+        ComparisonTest.Group.Name => "Listed name, varied",
+        ComparisonTest.Group.Identifier => "Renamed, listed detail",
+        _ => "Ordinary name",
+    };
+
     private BatchInput? _input;
     private string _fileName = "";
     private List<BatchResult>? _results;
@@ -199,6 +280,7 @@
     {
         _error = null;
         _results = null;
+        _score = null;
         _input = null;
 
         var file = e.File;
@@ -235,6 +317,7 @@
 
         _error = null;
         _results = null;
+        _score = null;
         _busy = true;
         _stopped = false;
         _done = 0;
