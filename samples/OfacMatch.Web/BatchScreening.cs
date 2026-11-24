@@ -20,6 +20,14 @@ public sealed class BatchInputRow
     public string? Country { get; init; }
 
     public string? TypeText { get; init; }
+
+    public string? Email { get; init; }
+
+    public string? Phone { get; init; }
+
+    public string? Website { get; init; }
+
+    public string? CryptoAddress { get; init; }
 }
 
 /// <summary>What was read from an uploaded file and which columns were used.</summary>
@@ -58,7 +66,8 @@ public sealed class BatchResult
         : Matches.Count == 0 ? BatchStatus.NoMatch
         // Only a birth year that differs from every match points to a different person. A country
         // alone does not: OFAC often lists only some addresses (a bank's foreign branches, for example).
-        : Matches.All(m => m.DateOfBirthConflict) ? BatchStatus.MatchWithConflicts
+        // A listed email, phone, website or crypto address outweighs a different birth year.
+        : Matches.All(m => m.DateOfBirthConflict && m.IdentifierMatches.Count == 0) ? BatchStatus.MatchWithConflicts
         : BatchStatus.Match;
 }
 
@@ -80,17 +89,17 @@ public static class BatchFile
     private static readonly Regex Year = new(@"\b(1[89]\d\d|20\d\d)\b", RegexOptions.CultureInvariant);
 
     public const string Template =
-        "Name,Year of birth,Country,Type\r\n" +
-        "John Michael Doe,1970,United States,Individual\r\n" +
-        "Jane Example,,,Individual\r\n" +
-        "Example Trading Co. Ltd,,,Entity\r\n";
+        "Name,Year of birth,Country,Type,Email,Phone,Website\r\n" +
+        "John Michael Doe,1970,United States,Individual,john.doe@example.com,,\r\n" +
+        "Jane Example,,,Individual,,+1 555 0100,\r\n" +
+        "Example Trading Co. Ltd,,,Entity,sales@example.com,,www.example.com\r\n";
 
     /// <summary>
     /// A short list for trying the page: names on the SDN list (one spelled differently, one with
     /// a different birth year), ordinary names, and a date the page can't read.
     /// </summary>
     public const string Sample =
-        "Customer ID,Name,Date of birth,Country,Type\r\n" +
+        "Customer ID,Name,Date of birth,Country,Type,Email\r\n" +
         "1001,Aymen Zawahri,1951,Egypt,Individual\r\n" +
         "1002,Ayman al-Zawahiri,1990,United States,Individual\r\n" +
         "1003,Viktor Bout,13 Jan 1967,Russia,Individual\r\n" +
@@ -100,7 +109,9 @@ public static class BatchFile
         "1007,\"Thompson, Grace\",1964,United States,Individual\r\n" +
         "1008,Daniel Lee,1979,United Kingdom,Individual\r\n" +
         "1009,Blue River Holdings LLC,,United States,Entity\r\n" +
-        "1010,John Smith,born in the 80s,United States,Individual\r\n";
+        "1010,John Smith,born in the 80s,United States,Individual\r\n" +
+        // A supplier that changed its name: only its email gives it away (OFAC's Pegasus case).
+        "1011,Brand New Precision LLC,,China,Entity,sales@yolimachine.com\r\n";
 
     /// <summary>Reads a CSV (comma, semicolon or tab separated) with or without a header row.</summary>
     public static BatchInput Read(string text)
@@ -114,6 +125,7 @@ public static class BatchFile
 
         var header = rows[0].Select(c => c.Trim()).ToList();
         int nameCol = -1, firstCol = -1, middleCol = -1, lastCol = -1, yearCol = -1, countryCol = -1, typeCol = -1;
+        int emailCol = -1, phoneCol = -1, websiteCol = -1, cryptoCol = -1;
         for (var i = 0; i < header.Count; i++)
         {
             var h = Normalize(header[i]);
@@ -129,6 +141,10 @@ public static class BatchFile
             if (h.Contains("birth") || h is "yob" or "dob" or "year") { yearCol = First(yearCol, i); continue; }
             if (h.Contains("country") || h.Contains("nationality") || h.Contains("citizenship")) { countryCol = First(countryCol, i); continue; }
             if (h is "type" or "partytype" or "entitytype" or "kind" or "customertype") { typeCol = First(typeCol, i); continue; }
+            if (h.Contains("crypto") || h.Contains("wallet") || h.Contains("digitalcurrency")) { cryptoCol = First(cryptoCol, i); continue; }
+            if (h.Contains("email") || h is "mail") { emailCol = First(emailCol, i); continue; }
+            if (h.Contains("phone") || h.Contains("mobile") || h is "tel" or "telephone" or "fax" or "faxnumber") { phoneCol = First(phoneCol, i); continue; }
+            if (h.Contains("website") || h is "web" or "url" or "homepage" or "domain" or "site") { websiteCol = First(websiteCol, i); continue; }
             if (nameCol < 0 && h.EndsWith("name", StringComparison.Ordinal)) { nameCol = i; }
         }
 
@@ -148,6 +164,11 @@ public static class BatchFile
             input.ColumnsUsed.Add(yearCol >= 0 ? $"Year of birth: “{header[yearCol]}”" : "Year of birth: not found");
             input.ColumnsUsed.Add(countryCol >= 0 ? $"Country: “{header[countryCol]}”" : "Country: not found");
             input.ColumnsUsed.Add(typeCol >= 0 ? $"Type: “{header[typeCol]}”" : "Type: not found");
+            var identifiers = new[] { ("Email", emailCol), ("Phone", phoneCol), ("Website", websiteCol), ("Crypto address", cryptoCol) }
+                .Where(c => c.Item2 >= 0)
+                .Select(c => $"{c.Item1}: “{header[c.Item2]}”")
+                .ToList();
+            input.ColumnsUsed.Add(identifiers.Count > 0 ? string.Join(", ", identifiers) : "Email, phone, website, crypto address: not found");
         }
 
         var first = input.HasHeader ? 1 : 0;
@@ -171,6 +192,10 @@ public static class BatchFile
                 YearOfBirthText = NullIfEmpty(Cell(row, yearCol)),
                 Country = NullIfEmpty(Cell(row, countryCol)),
                 TypeText = NullIfEmpty(Cell(row, typeCol)),
+                Email = NullIfEmpty(Cell(row, emailCol)),
+                Phone = NullIfEmpty(Cell(row, phoneCol)),
+                Website = NullIfEmpty(Cell(row, websiteCol)),
+                CryptoAddress = NullIfEmpty(Cell(row, cryptoCol)),
             });
         }
 
@@ -245,6 +270,13 @@ public static class BatchFile
             };
         }
 
+        // An identifier the library rejects (say, "n/a" in the Email column) is left out with a note,
+        // like a year of birth that can't be read; the name is still screened.
+        Identifier("Email", row.Email, v => request.Email = v, notes);
+        Identifier("Phone", row.Phone, v => request.Phone = v, notes);
+        Identifier("Website", row.Website, v => request.Website = v, notes);
+        Identifier("Crypto address", row.CryptoAddress, v => request.CryptoAddress = v, notes);
+
         return new BatchResult
         {
             Input = row,
@@ -254,6 +286,43 @@ public static class BatchFile
             Note = notes.Count == 0 ? null : string.Join(" ", notes),
         };
     }
+
+    private static void Identifier(string label, string? value, Action<string> set, List<string> notes)
+    {
+        if (value is null)
+        {
+            return;
+        }
+
+        try
+        {
+            set(value);
+        }
+        catch (ArgumentException)
+        {
+            notes.Add($"{label} “{value}” not understood; screened without it.");
+        }
+    }
+
+    /// <summary>A short description of what matched, e.g. "Name", "Email", "Name and phone".</summary>
+    public static string MatchedBy(ScreeningMatch match)
+    {
+        if (match.MatchedBy == MatchBasis.Name)
+        {
+            return "Name";
+        }
+
+        var what = string.Join(", ", match.IdentifierMatches.Select(m => IdentifierName(m.QueryType)).Distinct());
+        return match.MatchedBy == MatchBasis.NameAndIdentifier ? $"Name and {what}" : char.ToUpperInvariant(what[0]) + what.Substring(1);
+    }
+
+    private static string IdentifierName(IdentifierType type) => type switch
+    {
+        IdentifierType.Email => "email",
+        IdentifierType.Phone => "phone",
+        IdentifierType.Website => "website",
+        _ => "crypto address",
+    };
 
     /// <summary>
     /// Writes one line per match (and one per row without matches) for review and record keeping.
@@ -266,9 +335,10 @@ public static class BatchFile
 
         var sb = new StringBuilder();
         Line(sb,
-            "row", "input_name", "input_year_of_birth", "input_country", "input_type", "result",
+            "row", "input_name", "input_year_of_birth", "input_country", "input_type",
+            "input_email", "input_phone", "input_website", "input_crypto_address", "result",
             "match_number", "score", "listed_name", "matched_name", "matched_name_kind", "entry_id", "entry_type", "programs",
-            "date_of_birth_conflict", "country_conflict", "explanation", "note",
+            "date_of_birth_conflict", "country_conflict", "matched_by", "identifier_match", "explanation", "note",
             "reviewer_decision", "reviewer_name", "reviewer_notes",
             "minimum_score", "sdn_list_downloaded", "sdn_list_entries", "screened_at", "ofacmatch_version");
 
@@ -290,12 +360,16 @@ public static class BatchFile
                 r.Input.YearOfBirthText ?? "",
                 r.Input.Country ?? "",
                 r.Input.TypeText ?? "",
+                r.Input.Email ?? "",
+                r.Input.Phone ?? "",
+                r.Input.Website ?? "",
+                r.Input.CryptoAddress ?? "",
                 Describe(r.Status),
             };
 
             if (r.Matches.Count == 0)
             {
-                Line(sb, head.Concat(new[] { "", "", "", "", "", "", "", "", "", "", "", r.Error ?? r.Note ?? "", "", "", "" }).Concat(tail).ToArray());
+                Line(sb, head.Concat(Enumerable.Repeat("", 13)).Concat(new[] { r.Error ?? r.Note ?? "", "", "", "" }).Concat(tail).ToArray());
                 continue;
             }
 
@@ -314,6 +388,8 @@ public static class BatchFile
                     string.Join("; ", m.Entry.Programs),
                     m.DateOfBirthConflict ? "yes" : "no",
                     m.CountryConflict ? "yes" : "no",
+                    MatchedBy(m),
+                    string.Join("; ", m.IdentifierMatches.Select(x => x.Describe())),
                     m.Explain().TrimEnd(),
                     r.Note ?? "",
                     "", "", "",

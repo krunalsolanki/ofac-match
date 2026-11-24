@@ -50,6 +50,31 @@
                 Minimum score
                 <input type="number" @bind="_minScore" min="0" max="100" step="1" />
             </label>
+            <details class="more" open="@_moreOpen">
+                <summary>More details <span class="optional">optional: email, phone, website, crypto address</span></summary>
+                <p class="meta">
+                    Also checks the email addresses, phone numbers, websites and crypto addresses that OFAC lists.
+                    A name change doesn't hide these.
+                </p>
+                <div class="more-fields">
+                    <label>
+                        Email
+                        <input type="email" @bind="_email" placeholder="e.g. sales@example.com" maxlength="@ScreeningRequest.MaxIdentifierLength" />
+                    </label>
+                    <label>
+                        Phone
+                        <input type="tel" @bind="_phone" placeholder="e.g. +86 158 0000 0000" maxlength="@ScreeningRequest.MaxIdentifierLength" />
+                    </label>
+                    <label>
+                        Website
+                        <input @bind="_website" placeholder="e.g. example.com" maxlength="@ScreeningRequest.MaxIdentifierLength" />
+                    </label>
+                    <label>
+                        Crypto address
+                        <input @bind="_crypto" placeholder="e.g. a Bitcoin or Ethereum address" maxlength="@ScreeningRequest.MaxIdentifierLength" />
+                    </label>
+                </div>
+            </details>
             <button type="submit" disabled="@_busy">@(_busy ? "Screening…" : "Screen")</button>
         </form>
 
@@ -58,6 +83,7 @@
             <button type="button" @onclick='() => TryAsync("Aymen Zawahri", 1951)'>Aymen Zawahri, born 1951</button>
             <button type="button" @onclick='() => TryAsync("Aymen Zawahri", 1990)'>same name, born 1990</button>
             <button type="button" @onclick='() => TryAsync("John Smith", null)'>John Smith</button>
+            <button type="button" @onclick='() => TryAsync("Brand New Precision LLC", null, "sales@yolimachine.com")'>a renamed company, by its email</button>
         </p>
 
         @if (_error is not null)
@@ -75,21 +101,46 @@
             <h2>@ResultTitle</h2>
             @if (_matches.Count == 0)
             {
-                <p class="clear">No listed name scored @_usedMinScore or higher.</p>
+                <p class="clear">No listed name scored @_usedMinScore or higher@(_usedIdentifiers ? ", and none of the details you gave is listed" : "").</p>
             }
 
             @foreach (var match in _matches)
             {
                 <article class="match">
-                    <div class="score @ScoreClass(match.Score)">@match.Score.ToString("0.0")</div>
+                    @if (match.MatchedBy == MatchBasis.Identifier)
+                    {
+                        <div class="score identifier" title="Found by @BatchFile.MatchedBy(match).ToLowerInvariant(); the name scored @match.Score.ToString("0.0")">@BatchFile.MatchedBy(match)</div>
+                    }
+                    else
+                    {
+                        <div class="score @ScoreClass(match.Score)">@match.Score.ToString("0.0")</div>
+                    }
                     <div class="detail">
                         <h3>@match.Entry.Name</h3>
                         <p class="meta">
                             Entry @match.Entry.Id · @match.Entry.Type · programs: @string.Join(", ", match.Entry.Programs)
                         </p>
+                        @if (match.IdentifierMatches.Count > 0)
+                        {
+                            <div class="identifier-match">
+                                <strong>@(match.MatchedBy == MatchBasis.Identifier ? "Found by a listed detail, not by the name." : "The name and a listed detail both match.")</strong>
+                                <ul>
+                                    @foreach (var id in match.IdentifierMatches)
+                                    {
+                                        <li>@id.Describe()</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
                         <p>
-                            Matched the @Kind(match.NameKind)
-                            <strong>“@match.MatchedName”</strong> using @Technique(match.NameScore.Technique).
+                            @if (match.MatchedBy == MatchBasis.Identifier)
+                            {
+                                <text>Closest name: the @Kind(match.NameKind) <strong>“@match.MatchedName”</strong>, score @match.Score.ToString("0.0") (below @_usedMinScore). The party may be using another name.</text>
+                            }
+                            else
+                            {
+                                <text>Matched the @Kind(match.NameKind) <strong>“@match.MatchedName”</strong> using @Technique(match.NameScore.Technique).</text>
+                            }
                         </p>
 
                         @if (match.DateOfBirthConflict)
@@ -102,26 +153,29 @@
                             <p class="conflict">Country conflict: listed @string.Join(", ", match.Entry.Countries).</p>
                         }
 
-                        <table>
-                            <thead>
-                                <tr><th>Your name part</th><th>Listed part</th><th>Similarity</th><th>Sounds alike</th></tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var part in match.NameScore.Parts)
-                                {
-                                    <tr>
-                                        <td>@part.QueryPart</td>
-                                        <td>@(part.ListedPart ?? "no match")</td>
-                                        <td>@part.Similarity.ToString("0.000")</td>
-                                        <td>@(part.SoundsAlike ? "yes" : "no")</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                        <p class="meta">
-                            Whole-name score @match.NameScore.FullNameScore.ToString("0.0")@(match.NameScore.FullNameCounts ? "" : " (not counted: a name part has no close partner)");
-                            name-parts score @match.NameScore.NamePartsScore.ToString("0.0").
-                        </p>
+                        @if (match.MatchedBy != MatchBasis.Identifier)
+                        {
+                            <table>
+                                <thead>
+                                    <tr><th>Your name part</th><th>Listed part</th><th>Similarity</th><th>Sounds alike</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var part in match.NameScore.Parts)
+                                    {
+                                        <tr>
+                                            <td>@part.QueryPart</td>
+                                            <td>@(part.ListedPart ?? "no match")</td>
+                                            <td>@part.Similarity.ToString("0.000")</td>
+                                            <td>@(part.SoundsAlike ? "yes" : "no")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <p class="meta">
+                                Whole-name score @match.NameScore.FullNameScore.ToString("0.0")@(match.NameScore.FullNameCounts ? "" : " (not counted: a name part has no close partner)");
+                                name-parts score @match.NameScore.NamePartsScore.ToString("0.0").
+                            </p>
+                        }
                     </div>
                 </article>
             }
@@ -158,6 +212,12 @@
     private int? _yearOfBirth;
     private string _country = "";
     private string _type = "";
+    private string _email = "";
+    private string _phone = "";
+    private string _website = "";
+    private string _crypto = "";
+    private bool _moreOpen;
+    private bool _usedIdentifiers;
     private double _minScore = 85;
     private double _usedMinScore;
     private bool _busy;
@@ -195,10 +255,13 @@
         StateHasChanged();
     }
 
-    private async Task TryAsync(string name, int? yearOfBirth)
+    private async Task TryAsync(string name, int? yearOfBirth, string email = "")
     {
         _name = name;
         _yearOfBirth = yearOfBirth;
+        _email = email;
+        _phone = _website = _crypto = "";
+        _moreOpen = email.Length > 0;
         _country = "";
         _type = "";
         _minScore = 85;
@@ -220,6 +283,10 @@
                 Country = string.IsNullOrWhiteSpace(_country) ? null : _country.Trim(),
                 Type = Enum.TryParse<EntryType>(_type, out var type) ? type : null,
                 MinScore = _minScore,
+                Email = _email,
+                Phone = _phone,
+                Website = _website,
+                CryptoAddress = _crypto,
             };
         }
         catch (ArgumentException ex)
@@ -243,6 +310,7 @@
             _matches = screener.Screen(request);
             _screenedName = request.Name;
             _usedMinScore = _minScore;
+            _usedIdentifiers = request.Email is not null || request.Phone is not null || request.Website is not null || request.CryptoAddress is not null;
         }
         catch (Exception ex) when (ex is HttpRequestException or InvalidDataException)
         {

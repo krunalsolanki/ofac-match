@@ -7,7 +7,9 @@
 <section class="batch">
     <p>
         Upload a CSV file with a column called <strong>Name</strong>. Optional columns: <strong>Year of birth</strong>
-        (or a date of birth), <strong>Country</strong> and <strong>Type</strong> (Individual or Entity).
+        (or a date of birth), <strong>Country</strong>, <strong>Type</strong> (Individual or Entity), and
+        <strong>Email</strong>, <strong>Phone</strong>, <strong>Website</strong> and <strong>Crypto address</strong>,
+        which are checked against the ones OFAC lists, so a party that changed its name is still found.
         Separate <em>First name</em> and <em>Last name</em> columns also work.
         Up to @BatchFile.MaxRows.ToString("N0") rows. Screening runs on your computer, so a long list takes a few
         minutes; the page shows the time left.
@@ -91,7 +93,7 @@
         <p class="meta">
             Minimum score @_usedMinScore. @(_stopped ? "Stopped early. " : "")Took @_elapsed.TotalSeconds.ToString("0.0") s.
             “Likely a different person” means the name is similar, but the year of birth differs from every listed
-            match. A person must still check these: the list itself can be wrong or incomplete.
+            match and no email, phone, website or crypto address matched. A person must still check these: the list itself can be wrong or incomplete.
         </p>
 
         <p class="examples">
@@ -106,7 +108,7 @@
 
         <table class="batch-results">
             <thead>
-                <tr><th>Row</th><th>Name</th><th>Result</th><th>Best score</th><th>Listed name</th></tr>
+                <tr><th>Row</th><th>Name</th><th>Result</th><th>Matched by</th><th>Best score</th><th>Listed name</th></tr>
             </thead>
             <tbody>
                 @foreach (var r in Shown.Take(MaxShown))
@@ -126,6 +128,7 @@
                                 <div class="meta">@r.Note</div>
                             }
                         </td>
+                        <td>@(best is null ? "" : BatchFile.MatchedBy(best))</td>
                         <td>@(best is null ? "" : best.Score.ToString("0.0"))</td>
                         <td>
                             @if (best is not null)
