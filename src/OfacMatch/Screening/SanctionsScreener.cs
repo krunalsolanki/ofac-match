@@ -16,11 +16,18 @@ public sealed class ScreeningRequest
     /// <summary>Earliest year of birth accepted.</summary>
     public const int MinYearOfBirth = 1800;
 
+    /// <summary>Longest email address, phone number, website or crypto address accepted.</summary>
+    public const int MaxIdentifierLength = 500;
+
     private EntryType? _type;
     private int? _yearOfBirth;
     private string? _country;
     private double? _minScore;
     private int? _maxResults;
+    private string? _email;
+    private string? _phone;
+    private string? _website;
+    private string? _cryptoAddress;
 
     /// <summary>Creates a request for a name.</summary>
     /// <exception cref="ArgumentNullException"><paramref name="name"/> is null.</exception>
@@ -100,6 +107,70 @@ public sealed class ScreeningRequest
         get => _maxResults;
         set => _maxResults = value is int max ? Guard.InRange(max, 1, int.MaxValue, nameof(value)) : null;
     }
+
+    /// <summary>
+    /// The party's email address. An entry that lists the same address, or a website on the same domain,
+    /// is returned even when the name doesn't match.
+    /// </summary>
+    /// <exception cref="ArgumentException">The value is not an email address.</exception>
+    public string? Email
+    {
+        get => _email;
+        set => _email = Validate(value, v => IdentifierNormalizer.Email(v) is not null, "an email address");
+    }
+
+    /// <summary>
+    /// The party's phone number, in any format. An entry that lists the same number, or one ending in the same
+    /// 9 digits, is returned even when the name doesn't match.
+    /// </summary>
+    /// <exception cref="ArgumentException">The value has fewer than 7 digits.</exception>
+    public string? Phone
+    {
+        get => _phone;
+        set => _phone = Validate(value, v => IdentifierNormalizer.Phone(v) is not null, "a phone number with at least 7 digits");
+    }
+
+    /// <summary>
+    /// The party's website. An entry that lists the same site, or a site on the same domain,
+    /// is returned even when the name doesn't match.
+    /// </summary>
+    /// <exception cref="ArgumentException">The value is not a website address.</exception>
+    public string? Website
+    {
+        get => _website;
+        set => _website = Validate(value, v => IdentifierNormalizer.Website(v) is not null, "a website address");
+    }
+
+    /// <summary>
+    /// A digital currency (crypto) address. An entry that lists the same address is returned even when the name
+    /// doesn't match.
+    /// </summary>
+    /// <exception cref="ArgumentException">The value is not a crypto address.</exception>
+    public string? CryptoAddress
+    {
+        get => _cryptoAddress;
+        set => _cryptoAddress = Validate(value, v => IdentifierNormalizer.Crypto(v) is not null, "a crypto address");
+    }
+
+    private static string? Validate(string? value, Func<string, bool> isValid, string what)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (value!.Length > MaxIdentifierLength)
+        {
+            throw new ArgumentException($"Value is longer than {MaxIdentifierLength} characters.", nameof(value));
+        }
+
+        if (!isValid(value))
+        {
+            throw new ArgumentException($"\"{value}\" is not {what}.", nameof(value));
+        }
+
+        return value;
+    }
 }
 
 /// <summary>Screening settings.</summary>
@@ -145,7 +216,15 @@ public sealed class ScreeningOptions
 /// <summary>A potential match. A person must review it: a score measures name similarity, not identity.</summary>
 public sealed class ScreeningMatch
 {
-    internal ScreeningMatch(SanctionsEntry entry, string matchedName, NameKind nameKind, NameScore nameScore, bool dobConflict, bool countryConflict)
+    internal ScreeningMatch(
+        SanctionsEntry entry,
+        string matchedName,
+        NameKind nameKind,
+        NameScore nameScore,
+        bool dobConflict,
+        bool countryConflict,
+        IReadOnlyList<IdentifierMatch> identifierMatches,
+        MatchBasis matchedBy)
     {
         Entry = entry;
         MatchedName = matchedName;
@@ -153,13 +232,24 @@ public sealed class ScreeningMatch
         NameScore = nameScore;
         DateOfBirthConflict = dobConflict;
         CountryConflict = countryConflict;
+        IdentifierMatches = identifierMatches;
+        MatchedBy = matchedBy;
     }
 
     /// <summary>The listed entry.</summary>
     public SanctionsEntry Entry { get; }
 
-    /// <summary>Score on OFAC's 0-100 scale (100 = exact).</summary>
+    /// <summary>
+    /// Name score on OFAC's 0-100 scale (100 = exact). For a match found by an identifier
+    /// (<see cref="MatchedBy"/> is <see cref="MatchBasis.Identifier"/>) it is below the threshold.
+    /// </summary>
     public double Score => NameScore.Score;
+
+    /// <summary>Whether the name, an identifier (email, phone, website, crypto address) or both matched.</summary>
+    public MatchBasis MatchedBy { get; }
+
+    /// <summary>The screened identifiers that match ones listed for the entry. Empty when only the name matched.</summary>
+    public IReadOnlyList<IdentifierMatch> IdentifierMatches { get; }
 
     /// <summary>The listed name (primary or alias) that matched best.</summary>
     public string MatchedName { get; }
@@ -180,8 +270,15 @@ public sealed class ScreeningMatch
     public string Explain()
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Score {Score:0.0} via {NameScore.Technique} against {NameKind} name \"{MatchedName}\"");
+        sb.AppendLine(MatchedBy == MatchBasis.Identifier
+            ? $"Identifier match; name score {Score:0.0} via {NameScore.Technique} against {NameKind} name \"{MatchedName}\""
+            : $"Score {Score:0.0} via {NameScore.Technique} against {NameKind} name \"{MatchedName}\"");
         sb.AppendLine($"  Entry {Entry.Id}: {Entry.Name} ({Entry.Type}; programs: {string.Join(", ", Entry.Programs)})");
+        foreach (var identifier in IdentifierMatches)
+        {
+            sb.AppendLine($"  {identifier.Describe()}");
+        }
+
         sb.AppendLine($"  Full-name score {NameScore.FullNameScore:0.0}{(NameScore.FullNameCounts ? string.Empty : " (not counted: a name part has no close partner)")}; name-parts score {NameScore.NamePartsScore:0.0}{(NameScore.ScoredFromListedName ? " (scored from the listed name: the search has parts not on the list)" : string.Empty)}");
         foreach (var part in NameScore.Parts)
         {
@@ -214,6 +311,8 @@ public sealed class SanctionsScreener
     private readonly EntryType[] _types;
     private readonly long[] _initials;
     private readonly Dictionary<string, int> _vocabulary = new(StringComparer.Ordinal);
+    private readonly Dictionary<int, List<int>> _namesByEntry = new();
+    private readonly IdentifierIndex _identifiers;
 
     [ThreadStatic]
     private static TokenSimilarityCache? t_cache;
@@ -242,6 +341,44 @@ public sealed class SanctionsScreener
         _names = _nameList.ToArray();
         _types = _names.Select(n => n.Entry.Type).ToArray();
         _initials = _names.Select(n => n.Initials).ToArray();
+        for (var i = 0; i < _names.Length; i++)
+        {
+            var id = _names[i].Entry.Id;
+            if (!_namesByEntry.TryGetValue(id, out var indexes))
+            {
+                _namesByEntry[id] = indexes = new List<int>();
+            }
+
+            indexes.Add(i);
+        }
+
+        _identifiers = new IdentifierIndex(list.Entries);
+    }
+
+    /// <summary>
+    /// Finds entries that list an email address, website, phone number or crypto address matching
+    /// <paramref name="value"/>, without screening a name.
+    /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not a valid identifier of that type.</exception>
+    public IReadOnlyList<IdentifierMatch> ScreenIdentifier(IdentifierType type, string value)
+    {
+        Guard.NotNull(value, nameof(value));
+        var request = new ScreeningRequest("x");
+        switch (type)
+        {
+            case IdentifierType.Email: request.Email = value; break;
+            case IdentifierType.Phone: request.Phone = value; break;
+            case IdentifierType.Website: request.Website = value; break;
+            case IdentifierType.CryptoAddress: request.CryptoAddress = value; break;
+            default: throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown identifier type.");
+        }
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new ArgumentException("Value must not be empty.", nameof(value));
+        }
+
+        return _identifiers.Find(type, value);
     }
 
     /// <summary>Screens a name. Throws <see cref="ArgumentException"/> for a name <see cref="ScreeningRequest"/> rejects.</summary>
@@ -302,8 +439,45 @@ public sealed class SanctionsScreener
             }
         }
 
+        // Identifiers are matched on every entry, whatever its type: a borrower's email on a listed company's
+        // domain is worth a look. They never remove or lower a name match.
+        var byIdentifier = new Dictionary<int, List<IdentifierMatch>>();
+        foreach (var (type, value) in RequestIdentifiers(request))
+        {
+            foreach (var found in _identifiers.Find(type, value))
+            {
+                if (!byIdentifier.TryGetValue(found.Entry.Id, out var list))
+                {
+                    byIdentifier[found.Entry.Id] = list = new List<IdentifierMatch>();
+                }
+
+                list.Add(found);
+            }
+        }
+
+        // An entry found only by an identifier still gets its best name score, so the analyst sees how the
+        // names compare (often not at all, when the party has changed its name).
+        foreach (var entryId in byIdentifier.Keys)
+        {
+            if (!best.ContainsKey(entryId) && _namesByEntry.TryGetValue(entryId, out var indexes))
+            {
+                foreach (var i in indexes)
+                {
+                    var indexed = _names[i];
+                    var query = _types[i] == EntryType.Individual ? queryPlain : queryEntity;
+                    var score = _scorer.Score(query, indexed.Tokens, double.NegativeInfinity, cache)!;
+                    if (!best.TryGetValue(entryId, out var current) || score.Score > current.Score.Score)
+                    {
+                        best[entryId] = (indexed, score);
+                    }
+                }
+            }
+        }
+
         return best.Values
-            .OrderByDescending(m => m.Score.Score)
+            .Select(m => (m.Name, m.Score, Identifiers: byIdentifier.TryGetValue(m.Name.Entry.Id, out var ids) ? ids : null))
+            .OrderByDescending(m => m.Identifiers is not null)
+            .ThenByDescending(m => m.Score.Score)
             .ThenBy(m => m.Name.Entry.Id)
             .Take(request.MaxResults ?? _options.MaxResults)
             .Select(m => new ScreeningMatch(
@@ -312,8 +486,35 @@ public sealed class SanctionsScreener
                 m.Name.Kind,
                 m.Score,
                 HasDobConflict(m.Name.Entry, request),
-                HasCountryConflict(m.Name.Entry, request)))
+                HasCountryConflict(m.Name.Entry, request),
+                (IReadOnlyList<IdentifierMatch>?)m.Identifiers ?? Array.Empty<IdentifierMatch>(),
+                m.Identifiers is null ? MatchBasis.Name
+                    : m.Score.Score >= minScore ? MatchBasis.NameAndIdentifier
+                    : MatchBasis.Identifier))
             .ToList();
+    }
+
+    private static IEnumerable<(IdentifierType Type, string Value)> RequestIdentifiers(ScreeningRequest request)
+    {
+        if (request.Email is string email)
+        {
+            yield return (IdentifierType.Email, email);
+        }
+
+        if (request.Website is string website)
+        {
+            yield return (IdentifierType.Website, website);
+        }
+
+        if (request.Phone is string phone)
+        {
+            yield return (IdentifierType.Phone, phone);
+        }
+
+        if (request.CryptoAddress is string crypto)
+        {
+            yield return (IdentifierType.CryptoAddress, crypto);
+        }
     }
 
     private void Index(SanctionsEntry entry, string raw, NameKind kind)

@@ -38,9 +38,10 @@ A loaded list and a `SanctionsScreener` built on it are read-only and safe to sh
 var screener = new SanctionsScreener(list, options);
 IReadOnlyList<ScreeningMatch> matches = screener.Screen("name");
 IReadOnlyList<ScreeningMatch> matches = screener.Screen(request);
+IReadOnlyList<IdentifierMatch> hits = screener.ScreenIdentifier(IdentifierType.Email, "sales@example.test");
 ```
 
-Results are ordered best first, with at most one match per entry (its best-scoring name).
+Results are ordered best first, with at most one match per entry (its best-scoring name). Entries matched by an email, phone, website or crypto address come first.
 
 ### `ScreeningRequest`
 
@@ -52,10 +53,20 @@ Results are ordered best first, with at most one match per entry (its best-scori
 | `Country` | none | At most 100 characters. Flags matches whose listed addresses are all in other countries. |
 | `MinScore` | options | 0–100. Overrides `ScreeningOptions.MinScore` for this request. |
 | `MaxResults` | options | At least 1. Overrides `ScreeningOptions.MaxResults` for this request. |
+| `Email` | none | The party's email address. Matches a listed email exactly (ignoring case), or a listed website's domain. |
+| `Phone` | none | Any format, at least 7 digits. Matches a listed phone or fax number exactly, or on the last 9 digits (with and without a country code). |
+| `Website` | none | Matches a listed website exactly, or the same domain or a subdomain. |
+| `CryptoAddress` | none | Matches a listed digital currency address exactly (hex `0x…` and `bc1…` addresses ignore case). |
 
 Values outside these limits throw `ArgumentException` (or `ArgumentOutOfRangeException`) when you set them, not later during screening. A blank or punctuation-only name is rejected rather than returning no matches, so a data problem can't look like a clean result.
 
 Flags never remove a match. They give the reviewer facts to clear or escalate it.
+
+An entry whose listed email, phone, website or crypto address matches is returned **even when the name scores below `MinScore`** and whatever `Type` is set, because a party that changes its name usually keeps its contact details. A different email or phone never lowers a name match. Some rules keep identifiers from raising false alerts:
+
+- An email's domain counts only when it is the domain of a **listed website**, never of a listed email (listed emails are often on webmail or ISP domains shared by millions).
+- On shared platforms (facebook.com, t.me, wixsite.com and similar) only the exact listed page matches, and a page deep inside a university or government site doesn't flag the whole domain.
+- Identifiers that aren't valid (an email without `@`, a phone number with fewer than 7 digits) throw `ArgumentException`; blank values count as not given.
 
 ### `ScreeningOptions`
 
@@ -83,7 +94,9 @@ All five numbers must be between 0 and 1.
 
 | Member | Description |
 |---|---|
-| `Score` | 0–100. |
+| `Score` | Name score, 0–100. Below `MinScore` when only an identifier matched. |
+| `MatchedBy` | `Name`, `Identifier` or `NameAndIdentifier`. |
+| `IdentifierMatches` | Each `IdentifierMatch`: `QueryType`, `Query` (as given), `Listed` (the `SanctionsIdentifier`), `Level` (`Exact`, `SameDomain`, `SameNumberEnding`) and `Describe()`. Empty when only the name matched. |
 | `Entry` | The listed entry. |
 | `MatchedName`, `NameKind` | The name or alias that matched, and whether it is primary, aka, fka or nka. |
 | `NameScore` | Evidence: `FullNameScore`, `NamePartsScore`, `FullNameCounts`, `ScoredFromListedName` (true when extra searched parts were allowed for), `Technique`, and `Parts` (each `PartMatch` with `QueryPart`, `ListedPart`, `Similarity`, `SoundsAlike`, `Score`). |
