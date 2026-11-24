@@ -3,6 +3,7 @@
 @using OfacMatch.Screening
 @inject SanctionsData Data
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>OfacMatch – try OFAC name screening</PageTitle>
 
@@ -15,8 +16,25 @@
 <main>
     <nav class="modes" aria-label="Screening mode">
         <button type="button" class="@(_batch ? "" : "active")" aria-pressed="@(!_batch)" @onclick="() => _batch = false">One name</button>
-        <button type="button" class="@(_batch ? "active" : "")" aria-pressed="@_batch" @onclick="() => _batch = true">A list of names (CSV)</button>
+        <button type="button" class="@(_batch ? "active" : "")" aria-pressed="@_batch" @onclick="() => { _batch = true; _runComparison = false; }">A list of names (CSV)</button>
     </nav>
+
+    @if (!_batch)
+    {
+        <aside class="compare-callout" aria-label="Compare with your screening tool">
+            <p>
+                <strong>Already use a screening tool? Compare it in 10 minutes.</strong>
+                A 25-name test from the public SDN list: 10 listed names spelled differently, 5 renamed companies
+                that only a listed email, phone, website or crypto address can catch, and 10 ordinary names.
+                See how OfacMatch scores, then run the same file through your tool.
+            </p>
+            <p class="examples">
+                <button type="button" class="primary" @onclick="StartComparison">Run the test here</button>
+                <button type="button" @onclick="DownloadComparisonAsync">Download the test file</button>
+                <a href="@ComparisonTest.GuideUrl" target="_blank" rel="noopener">Answer key</a>
+            </p>
+        </aside>
+    }
 
     @if (_batch)
     {
@@ -210,6 +228,15 @@
 @code {
     private bool _batch;
     private bool _runComparison;
+
+    private void StartComparison()
+    {
+        _runComparison = true;
+        _batch = true;
+    }
+
+    private async Task DownloadComparisonAsync() =>
+        await JS.InvokeVoidAsync("ofacMatchDownload", ComparisonTest.FileName, ComparisonTest.Csv);
 
     // ?test=compare opens the list mode and runs the 25-name comparison test straight away.
     protected override void OnInitialized()
