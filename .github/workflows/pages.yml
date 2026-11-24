@@ -24,11 +24,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
 
@@ -70,5 +67,14 @@ jobs:
         with:
           path: publish/wwwroot
 
+  # A separate job, as in GitHub's own Pages workflows: deploying in the same job right after the
+  # upload sometimes fails with "No artifacts named github-pages were found".
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v5
