@@ -10,8 +10,9 @@ It runs on your machine, needs no API key, and downloads the official list strai
 
 | Tool | What it does |
 |---|---|
-| `screen_name` | Screens one name and returns potential matches with scores (0–100) and an explanation of each. Optional: entry type, year of birth, country, minimum score. |
+| `screen_name` | Screens one name and returns potential matches with scores (0–100) and an explanation of each. Optional: entry type, year of birth, country, minimum score, and email, phone, website and crypto address (matched against the ones OFAC lists, even under another name). |
 | `screen_names` | Screens up to 100 names and returns, for each, the number of potential matches and the best one. |
+| `screen_identifier` | Checks one email, phone number, website or crypto address against the ones OFAC lists, without a name. Catches parties that changed their name but kept their contact details. |
 | `get_sanctions_entry` | Returns the full published record of an SDN entry: names, aliases, programs, dates of birth, addresses, remarks. |
 | `compare_names` | Shows how two names score against each other, part by part. |
 | `get_list_info` | Reports which copy of the list is loaded and when it was downloaded. |
@@ -87,6 +88,7 @@ The first call downloads the list from OFAC (about 8 MB) and takes a few seconds
 
 - "Screen *Aymen Zawahri*, born 1951, against the OFAC list and explain any match."
 - "Screen these vendor names and tell me which need review: …"
+- "Is the supplier email *sales@example.com* or its website on the SDN list?"
 - "Show me SDN entry 306 and its aliases."
 - "Why does *John Smith* not match *NUMBI, John*?"
 

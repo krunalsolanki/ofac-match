@@ -10,4 +10,4 @@ the same party. A person must review every potential match. Checks the OFAC SDN 
 from .client import Client, OfacMatchError
 
 __all__ = ["Client", "OfacMatchError"]
-__version__ = "0.1.0"
+__version__ = "0.2.0"

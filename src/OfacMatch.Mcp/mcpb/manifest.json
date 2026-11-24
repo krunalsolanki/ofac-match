@@ -36,6 +36,7 @@
   "tools": [
     { "name": "screen_name", "description": "Screen one name against the SDN list and explain each potential match." },
     { "name": "screen_names", "description": "Screen up to 100 names and return the best match for each." },
+    { "name": "screen_identifier", "description": "Check an email, phone number, website or crypto address against the ones OFAC lists." },
     { "name": "get_sanctions_entry", "description": "Show the full published record of an SDN entry." },
     { "name": "compare_names", "description": "Show how two names score against each other, part by part." },
     { "name": "get_list_info", "description": "Report which copy of the SDN list is loaded and when it was downloaded." }

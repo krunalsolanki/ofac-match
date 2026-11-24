@@ -9,11 +9,12 @@ Use the `ofac-match` MCP server's tools for every screening. Don't answer from m
 
 ## Running a screening
 
-1. For one name, call `screen_name`. Pass `yearOfBirth` and `country` whenever the user knows them, so conflicts with the listed record can be flagged. Pass `type` (individual, entity, vessel or aircraft) when the user says what kind of party it is.
+1. For one name, call `screen_name`. Pass `yearOfBirth` and `country` whenever the user knows them, so conflicts with the listed record can be flagged. Pass `type` (individual, entity, vessel or aircraft) when the user says what kind of party it is. Pass `email`, `phone`, `website` and `cryptoAddress` whenever the user has them: OFAC lists these for many entries, and they still match when a party has changed its name.
 2. For several names, call `screen_names`, then call `screen_name` for each name that has potential matches to get the full explanation.
-3. To show the complete published record behind a match, call `get_sanctions_entry` with the match's entry ID.
-4. To explain why two specific names score the way they do, call `compare_names`.
-5. If the user asks how current the list is, call `get_list_info`.
+3. To check an email, phone number, website or crypto address on its own, without a name, call `screen_identifier`.
+4. To show the complete published record behind a match, call `get_sanctions_entry` with the match's entry ID.
+5. To explain why two specific names score the way they do, call `compare_names`.
+6. If the user asks how current the list is, call `get_list_info`.
 
 Keep the default minimum score of 85 unless the user asks for a different threshold, and say which threshold you used.
 
@@ -21,6 +22,7 @@ Keep the default minimum score of 85 unless the user asks for a different thresh
 
 - Call every result a **potential match**, never a confirmed match, a hit on the person, or a finding that someone is sanctioned.
 - For each potential match, give the score, the listed name, the entry ID, the programs, and the explanation from the tool: which name or alias matched and how the name parts paired.
+- When a match has `matchedBy` Identifier or NameAndIdentifier, say which email, phone, website or crypto address matched and how (exact, same domain or same last digits). An identifier match is strong evidence even when the names look nothing alike.
 - Point out every date-of-birth or country conflict the tool flags, and explain that a conflict suggests a different person but doesn't clear the match by itself.
 - When there are no potential matches, say that no listed name scored at or above the threshold, and give the list date from the result. Don't say the person is "clear" or "not sanctioned".
 - End with the reminder that a person must review each potential match against the full record (date of birth, nationality, address, identification numbers) before any decision, and that this is not legal advice.

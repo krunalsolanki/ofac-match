@@ -117,6 +117,10 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(result["potentialMatches"], 1)
         self.assertEqual(result["echo"], {"name": "John Doe", "type": "individual", "yearOfBirth": 1970, "country": "US", "minScore": 90, "maxResults": 3})
 
+    def test_screen_sends_identifiers(self):
+        result = self.client.screen("New Name LLC", email="a@example.test", phone="+1 555 0100", website="example.test", crypto_address="0xabc")
+        self.assertEqual(result["echo"], {"name": "New Name LLC", "email": "a@example.test", "phone": "+1 555 0100", "website": "example.test", "cryptoAddress": "0xabc"})
+
     def test_screen_leaves_out_unset_fields(self):
         self.assertEqual(self.client.screen("Emily Carter")["echo"], {"name": "Emily Carter"})
 

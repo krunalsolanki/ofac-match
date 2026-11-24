@@ -9,6 +9,7 @@ public static class Endpoints
 {
     public const string Notice =
         "Potential matches only. A score measures how similar two names are written, not whether they are the same party. " +
+        "An identifier match means an email, phone number, website or crypto address you gave is listed for that entry, even under another name. " +
         "A person must review each match against the full record before any decision. Checks the OFAC SDN list only. Not legal advice.";
 
     public const int MaxBatch = 1000;
@@ -19,7 +20,8 @@ public static class Endpoints
     {
         v1.MapPost("/screen", Screen)
             .WithSummary("Screen one name against the OFAC SDN list.")
-            .WithDescription("Returns potential matches, best first, each with a score (0-100), the matched name or alias, conflict flags and an explanation.");
+            .WithDescription("Returns potential matches, best first, each with a score (0-100), the matched name or alias, conflict flags and an explanation. " +
+                "Optional email, phone, website and cryptoAddress are matched against the ones OFAC lists; an entry they match is returned first, even when its name doesn't match.");
 
         v1.MapPost("/screen/batch", ScreenBatch)
             .WithSummary($"Screen up to {MaxBatch} names in one request.")
@@ -106,7 +108,8 @@ public static class Endpoints
 
                 var matches = loaded.Screener.Screen(request).Select(ToDto).ToList();
                 var status = matches.Count == 0 ? "no_match"
-                    : matches.All(m => m.DateOfBirthConflict) ? "likely_different_person"
+                    // A listed email, phone, website or crypto address is evidence a birth year doesn't outweigh.
+                    : matches.All(m => m.DateOfBirthConflict && m.IdentifierMatches.Count == 0) ? "likely_different_person"
                     : "review";
                 results[i] = new BatchItemResult(i, reference, request.Name, status, matches.Count, matches, null);
             });
@@ -187,6 +190,10 @@ public static class Endpoints
 
             Validated(() => built.YearOfBirth = body.YearOfBirth, "yearOfBirth", errors);
             Validated(() => built.Country = string.IsNullOrWhiteSpace(body.Country) ? null : body.Country.Trim(), "country", errors);
+            Validated(() => built.Email = body.Email, "email", errors);
+            Validated(() => built.Phone = body.Phone, "phone", errors);
+            Validated(() => built.Website = body.Website, "website", errors);
+            Validated(() => built.CryptoAddress = body.CryptoAddress, "cryptoAddress", errors);
             if (minScore is double score && score is >= 0 and <= 100)
             {
                 built.MinScore = score;
@@ -282,7 +289,28 @@ public static class Endpoints
             match.CountryConflict,
             match.NameScore.Parts.Select(ToDto).ToList(),
             // Same line breaks on every server, whatever its operating system.
-            match.Explain().Replace("\r\n", "\n").TrimEnd());
+            match.Explain().Replace("\r\n", "\n").TrimEnd(),
+            ToCamel(match.MatchedBy),
+            match.IdentifierMatches.Select(ToDto).ToList());
+
+    private static IdentifierMatchDto ToDto(IdentifierMatch match) =>
+        new(
+            ToCamel(match.QueryType),
+            match.Query,
+            ToCamel(match.Level),
+            ToCamel(match.Listed.Type),
+            match.Listed.Label,
+            match.Listed.Value,
+            match.Listed.Currency,
+            match.Describe());
+
+    /// <summary>Enum values as JSON-style names: NameAndIdentifier becomes nameAndIdentifier.</summary>
+    private static string ToCamel<T>(T value)
+        where T : struct, Enum
+    {
+        var text = value.ToString();
+        return char.ToLowerInvariant(text[0]) + text.Substring(1);
+    }
 
     private static PartDto ToDto(PartMatch part) =>
         new(part.QueryPart, part.ListedPart, Math.Round(part.Similarity, 3), part.SoundsAlike, Math.Round(part.Score, 3));
@@ -300,16 +328,35 @@ public static class Endpoints
             entry.Remarks);
 }
 
-/// <summary>One name to screen.</summary>
-public sealed record ScreenRequest(string? Name, string? Type = null, int? YearOfBirth = null, string? Country = null, double? MinScore = null, int? MaxResults = null);
+/// <summary>One name to screen, optionally with an email, phone number, website and crypto address.</summary>
+public sealed record ScreenRequest(
+    string? Name,
+    string? Type = null,
+    int? YearOfBirth = null,
+    string? Country = null,
+    double? MinScore = null,
+    int? MaxResults = null,
+    string? Email = null,
+    string? Phone = null,
+    string? Website = null,
+    string? CryptoAddress = null);
 
 /// <summary>Up to 1,000 names to screen, with shared settings.</summary>
 public sealed record BatchRequest(IReadOnlyList<BatchItem?>? Items, double? MinScore = null, int? MaxResults = null);
 
 /// <summary>One item of a batch. Reference is yours (for example a customer ID) and is returned unchanged.</summary>
-public sealed record BatchItem(string? Name = null, string? Reference = null, string? Type = null, int? YearOfBirth = null, string? Country = null)
+public sealed record BatchItem(
+    string? Name = null,
+    string? Reference = null,
+    string? Type = null,
+    int? YearOfBirth = null,
+    string? Country = null,
+    string? Email = null,
+    string? Phone = null,
+    string? Website = null,
+    string? CryptoAddress = null)
 {
-    internal ScreenRequest ToScreen() => new(Name, Type, YearOfBirth, Country);
+    internal ScreenRequest ToScreen() => new(Name, Type, YearOfBirth, Country, Email: Email, Phone: Phone, Website: Website, CryptoAddress: CryptoAddress);
 }
 
 public sealed record CompareRequest(string? Name, string? OtherName, bool? Companies = null);
@@ -336,7 +383,23 @@ public sealed record MatchDto(
     bool DateOfBirthConflict,
     bool CountryConflict,
     IReadOnlyList<PartDto> Parts,
-    string Explanation);
+    string Explanation,
+    string MatchedBy,
+    IReadOnlyList<IdentifierMatchDto> IdentifierMatches);
+
+/// <summary>
+/// A screened identifier that matches one listed for the entry. Level is exact, sameDomain or sameNumberEnding.
+/// Types are email, website, phone or cryptoAddress; an email can match a listed website's domain.
+/// </summary>
+public sealed record IdentifierMatchDto(
+    string QueryType,
+    string Query,
+    string Level,
+    string ListedType,
+    string ListedLabel,
+    string ListedValue,
+    string? Currency,
+    string Description);
 
 public sealed record PartDto(string QueryPart, string? MatchedPart, double Similarity, bool SoundsAlike, double Score);
 

@@ -36,12 +36,22 @@ for match in result["matches"]:
     print(match["score"], match["listedName"], match["explanation"])
 ```
 
+Add `email=`, `phone=`, `website=` or `crypto_address=` when you have them. OFAC lists these for many entries, and they often stay the same when a party changes its name, so an entry they match is returned first even when the name doesn't match:
+
+```python
+result = client.screen("Brand New Precision LLC", email="sales@yolimachine.com")
+match = result["matches"][0]
+print(match["matchedBy"])                                # identifier
+print(match["identifierMatches"][0]["description"])     # Email ... has the same domain as listed Website www.yolimachine.com
+```
+
 ### A whole customer list
 
 ```python
 customers = [
     {"reference": "CUST-1001", "name": "Aymen Zawahri", "year_of_birth": 1951},
     {"reference": "CUST-1002", "name": "Emily Carter", "year_of_birth": 1985, "country": "United States"},
+    {"reference": "VEND-77", "name": "New Supplier Ltd", "email": "orders@newsupplier.example"},
     # ... any number: sent 1,000 at a time
 ]
 
@@ -57,7 +67,7 @@ for row in result["results"]:
 Each result keeps your `reference` and has a `status`:
 
 - `review`: a potential match; a person must review it
-- `likely_different_person`: every match has a birth year that differs from the one you gave; still check it
+- `likely_different_person`: every match has a birth year that differs from the one you gave, and none matched by an identifier; still check it
 - `no_match`: nothing at or above the minimum score
 - `error`: that item was invalid (`row["error"]` says why); the rest are still screened
 
@@ -83,7 +93,7 @@ ofacmatch csv customers.csv results.csv
 ofacmatch screen "Aymen Zawahri" --yob 1951
 ```
 
-The input needs a header row with a **Name** column (or **First name** and **Last name**). Optional: **ID** or **Reference**, **Year of birth** or **Date of birth**, **Country**, **Type**. Use `--url` and `--api-key` (or `OFACMATCH_URL` and `OFACMATCH_API_KEY`) for a server other than `http://localhost:8080`.
+The input needs a header row with a **Name** column (or **First name** and **Last name**). Optional: **ID** or **Reference**, **Year of birth** or **Date of birth**, **Country**, **Type**, **Email**, **Phone**, **Website**, **Crypto address**. The results file has `matched_by` and `identifier_match` columns. `ofacmatch screen` takes `--email`, `--phone`, `--website` and `--crypto`. Use `--url` and `--api-key` (or `OFACMATCH_URL` and `OFACMATCH_API_KEY`) for a server other than `http://localhost:8080`.
 
 ## Links
 

@@ -1,6 +1,7 @@
 """Command line: screen one name, or a whole CSV file, through an OfacMatch API server.
 
     ofacmatch screen "Aymen Zawahri" --yob 1951
+    ofacmatch screen "Brand New Trading LLC" --email sales@example.com
     ofacmatch csv customers.csv results.csv
     ofacmatch --url http://screening.internal:8080 --api-key KEY csv customers.csv results.csv
 """
@@ -30,11 +31,15 @@ _COLUMNS = {
     "country": ["country", "nationality", "citizenship", "countryofresidence"],
     "type": ["type", "partytype", "entitytype"],
     "reference": ["id", "reference", "ref", "customerid", "customerno", "accountnumber", "account"],
+    "email": ["email", "emailaddress", "mail"],
+    "phone": ["phone", "phonenumber", "telephone", "tel", "mobile", "fax"],
+    "website": ["website", "web", "url", "homepage", "domain"],
+    "crypto": ["cryptoaddress", "crypto", "walletaddress", "wallet", "digitalcurrencyaddress"],
 }
 
 _OUTPUT = [
     "reference", "input_name", "result", "potential_matches", "best_score", "best_listed_name",
-    "best_entry_id", "best_programs", "date_of_birth_conflict", "country_conflict", "explanation",
+    "best_entry_id", "best_programs", "date_of_birth_conflict", "country_conflict", "matched_by", "identifier_match", "explanation",
     "reviewer_decision", "reviewer_name", "reviewer_notes",
 ]
 
@@ -51,6 +56,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     one.add_argument("--yob", type=int, help="year of birth")
     one.add_argument("--country")
     one.add_argument("--type", choices=["individual", "entity", "vessel", "aircraft"])
+    one.add_argument("--email")
+    one.add_argument("--phone")
+    one.add_argument("--website")
+    one.add_argument("--crypto", dest="crypto_address", help="crypto address")
     one.add_argument("--min", type=float, dest="min_score", help="minimum score, 0-100 (default 85)")
 
     many = commands.add_parser("csv", help="screen every row of a CSV file and write a results CSV")
@@ -62,7 +71,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     client = Client(args.url, api_key=args.api_key)
     try:
         if args.command == "screen":
-            result = client.screen(args.name, type=args.type, year_of_birth=args.yob, country=args.country, min_score=args.min_score)
+            result = client.screen(
+                args.name, type=args.type, year_of_birth=args.yob, country=args.country, min_score=args.min_score,
+                email=args.email, phone=args.phone, website=args.website, crypto_address=args.crypto_address,
+            )
             print(json.dumps(result, indent=2, ensure_ascii=False))
             return 0
         return _screen_csv(client, args.input, args.output, args.min_score)
@@ -105,6 +117,10 @@ def _screen_csv(client: Client, input_path: str, output_path: str, min_score: Op
             "year_of_birth": int(year.group(1)) if year else None,
             "country": cell("country") or None,
             "type": cell("type") or None,
+            "email": cell("email") or None,
+            "phone": cell("phone") or None,
+            "website": cell("website") or None,
+            "crypto_address": cell("crypto") or None,
         })
 
     if not items:
@@ -127,6 +143,8 @@ def _screen_csv(client: Client, input_path: str, output_path: str, min_score: Op
                 best and ", ".join(best["programs"]),
                 best and best["dateOfBirthConflict"],
                 best and best["countryConflict"],
+                best and best.get("matchedBy"),
+                best and "; ".join(m["description"] for m in best.get("identifierMatches") or []),
                 best and best["explanation"],
                 "", "", "",
             ]])

@@ -10,8 +10,8 @@ namespace OfacMatch.Api.Tests;
 public sealed class ApiFactory : WebApplicationFactory<Program>
 {
     private const string Sdn =
-        "100,\"DOE, John Michael\",\"individual\",\"SDGT\",-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,\"DOB 15 Mar 1970; POB Exampletown, Freedonia.\"\r\n" +
-        "101,\"EXAMPLE TRADING CO., LTD.\",-0- ,\"IRAN] [SDGT\",-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,\"a.k.a. 'ETC'.\"\r\n" +
+        "100,\"DOE, John Michael\",\"individual\",\"SDGT\",-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,\"DOB 15 Mar 1970; POB Exampletown, Freedonia; Email Address jdoe@example-mail.test.\"\r\n" +
+        "101,\"EXAMPLE TRADING CO., LTD.\",-0- ,\"IRAN] [SDGT\",-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,-0- ,\"a.k.a. 'ETC'; Website www.example-trading.test.\"\r\n" +
         "103,\"SEA STAR\",\"vessel\",\"IRAN\",-0- ,\"9ABC1\",\"Crude Oil Tanker\",-0- ,-0- ,\"Freedonia\",-0- ,-0- \r\n" +
         "\u001a";
 
@@ -106,6 +106,10 @@ public sealed class ApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     [InlineData("{\"name\":\"John Doe\",\"maxResults\":0}", "maxResults")]
     [InlineData("{\"name\":\"John Doe\",\"type\":\"planet\"}", "type")]
     [InlineData("{\"name\":\"John Doe\",\"yearOfBirth\":1500}", "yearOfBirth")]
+    [InlineData("{\"name\":\"John Doe\",\"email\":\"not-an-email\"}", "email")]
+    [InlineData("{\"name\":\"John Doe\",\"phone\":\"123\"}", "phone")]
+    [InlineData("{\"name\":\"John Doe\",\"website\":\"localhost\"}", "website")]
+    [InlineData("{\"name\":\"John Doe\",\"cryptoAddress\":\"short\"}", "cryptoAddress")]
     public async Task Screen_RejectsBadInput(string json, string field)
     {
         var response = await _client.PostAsync("/v1/screen", new StringContent(json, System.Text.Encoding.UTF8, "application/json"));
@@ -144,6 +148,55 @@ public sealed class ApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal(5, summary.GetProperty("screened").GetInt32());
         Assert.Equal(2, summary.GetProperty("review").GetInt32());
         Assert.Equal(1, summary.GetProperty("errors").GetInt32());
+    }
+
+    [Fact]
+    public async Task Screen_FindsRenamedCompanyByItsWebsiteDomain()
+    {
+        var response = await _client.PostAsJsonAsync("/v1/screen", new { name = "Brand New Holdings", email = "sales@example-trading.test" });
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        var match = body.GetProperty("matches")[0];
+        Assert.Equal(101, match.GetProperty("entryId").GetInt32());
+        Assert.Equal("identifier", match.GetProperty("matchedBy").GetString());
+        var id = match.GetProperty("identifierMatches")[0];
+        Assert.Equal("email", id.GetProperty("queryType").GetString());
+        Assert.Equal("sameDomain", id.GetProperty("level").GetString());
+        Assert.Equal("website", id.GetProperty("listedType").GetString());
+        Assert.Equal("www.example-trading.test", id.GetProperty("listedValue").GetString());
+        Assert.Contains("has the same domain as listed Website", match.GetProperty("explanation").GetString());
+    }
+
+    [Fact]
+    public async Task Screen_NameOnlyMatchHasNoIdentifierMatches()
+    {
+        var body = await (await _client.PostAsJsonAsync("/v1/screen", new { name = "John Doe" })).Content.ReadFromJsonAsync<JsonElement>();
+
+        var match = body.GetProperty("matches")[0];
+        Assert.Equal("name", match.GetProperty("matchedBy").GetString());
+        Assert.Equal(0, match.GetProperty("identifierMatches").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Batch_IdentifierMatchIsReviewedEvenWhenBirthYearDiffers()
+    {
+        var response = await _client.PostAsJsonAsync("/v1/screen/batch", new
+        {
+            items = new object[]
+            {
+                new { reference = "C-1", name = "John Doe", yearOfBirth = 1990, email = "JDoe@Example-Mail.test" },
+                new { reference = "C-2", name = "Emily Carter", phone = "+1 555 0100 999" },
+                new { reference = "C-3", name = "Emily Carter", email = "two@@example.test" },
+            },
+        });
+        response.EnsureSuccessStatusCode();
+        var results = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("results");
+
+        Assert.Equal("review", results[0].GetProperty("status").GetString());
+        Assert.Equal("nameAndIdentifier", results[0].GetProperty("matches")[0].GetProperty("matchedBy").GetString());
+        Assert.Equal("no_match", results[1].GetProperty("status").GetString());
+        Assert.Equal("error", results[2].GetProperty("status").GetString());
     }
 
     [Fact]

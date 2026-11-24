@@ -56,7 +56,27 @@ curl -X POST http://localhost:8080/v1/screen -H "Content-Type: application/json"
      -d '{"name": "Aymen Zawahri", "yearOfBirth": 1951, "country": "Egypt", "type": "individual"}'
 ```
 
-All fields except `name` are optional: `type` (individual, entity, vessel, aircraft), `yearOfBirth`, `country`, `minScore` (0-100, default 85) and `maxResults` (1-50, default 10).
+All fields except `name` are optional: `type` (individual, entity, vessel, aircraft), `yearOfBirth`, `country`, `minScore` (0-100, default 85), `maxResults` (1-50, default 10), and `email`, `phone`, `website` and `cryptoAddress`.
+
+**Email, phone, website and crypto address.** OFAC lists these for many entries, and they often stay the same when a party changes its name. An entry whose listed identifier matches is returned first, even when its name doesn't match. Each match has `matchedBy` (`name`, `identifier` or `nameAndIdentifier`) and `identifierMatches`:
+
+```bash
+curl -X POST http://localhost:8080/v1/screen -H "Content-Type: application/json" \
+     -d '{"name": "Brand New Precision LLC", "email": "sales@yolimachine.com"}'
+```
+
+```json
+"matchedBy": "identifier",
+"identifierMatches": [
+  {
+    "queryType": "email", "query": "sales@yolimachine.com", "level": "sameDomain",
+    "listedType": "website", "listedLabel": "Website", "listedValue": "www.yolimachine.com", "currency": null,
+    "description": "Email sales@yolimachine.com has the same domain as listed Website www.yolimachine.com"
+  }
+]
+```
+
+`level` is `exact`, `sameDomain` (an email or website on a listed website's domain; never on shared platforms such as facebook.com or webmail domains) or `sameNumberEnding` (the same last 9 phone digits).
 
 ```json
 {
@@ -96,15 +116,18 @@ curl -X POST http://localhost:8080/v1/screen/batch -H "Content-Type: application
   "minScore": 85,
   "items": [
     { "reference": "CUST-1001", "name": "Aymen Zawahri", "yearOfBirth": 1951 },
-    { "reference": "CUST-1002", "name": "Emily Carter", "yearOfBirth": 1985, "country": "United States" }
+    { "reference": "CUST-1002", "name": "Emily Carter", "yearOfBirth": 1985, "country": "United States" },
+    { "reference": "VEND-77", "name": "New Supplier Ltd", "email": "orders@newsupplier.example", "phone": "+86 158 0000 0000" }
   ]
 }'
 ```
 
+Items take the same optional fields as `/v1/screen`.
+
 Each result keeps your `reference` and has a `status`:
 
 - `review`: a potential match; a person must review it
-- `likely_different_person`: every match has a birth year that differs from the one you gave; still check it, because the list can be wrong or incomplete
+- `likely_different_person`: every match has a birth year that differs from the one you gave, and none matched by email, phone, website or crypto address; still check it, because the list can be wrong or incomplete
 - `no_match`: nothing at or above `minScore`
 - `error`: that item was invalid (the `error` field says why); the other items are still screened
 

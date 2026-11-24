@@ -11,7 +11,7 @@ from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional
 #: The API accepts at most this many items per batch request; larger lists are split automatically.
 MAX_BATCH = 1000
 
-_USER_AGENT = "ofacmatch-python/0.1.0"
+_USER_AGENT = "ofacmatch-python/0.2.0"
 
 
 class OfacMatchError(Exception):
@@ -57,8 +57,18 @@ class Client:
         country: Optional[str] = None,
         min_score: Optional[float] = None,
         max_results: Optional[int] = None,
+        email: Optional[str] = None,
+        phone: Optional[str] = None,
+        website: Optional[str] = None,
+        crypto_address: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Screens one name. ``type`` is individual, entity, vessel or aircraft (default: all)."""
+        """Screens one name. ``type`` is individual, entity, vessel or aircraft (default: all).
+
+        ``email``, ``phone``, ``website`` and ``crypto_address`` are checked against the ones OFAC
+        lists. An entry they match is returned first, even when its name doesn't match (a party
+        that changed its name); its ``matchedBy`` is ``identifier`` and ``identifierMatches`` says
+        what matched.
+        """
         body = _drop_none(
             name=name,
             type=type,
@@ -66,6 +76,10 @@ class Client:
             country=country,
             minScore=min_score,
             maxResults=max_results,
+            email=email,
+            phone=phone,
+            website=website,
+            cryptoAddress=crypto_address,
         )
         return self._request("POST", "/v1/screen", body)
 
@@ -79,7 +93,8 @@ class Client:
         """Screens a list of names, sending at most 1,000 per request.
 
         Each item is a mapping with ``name`` and optionally ``reference`` (your own ID, returned
-        unchanged), ``type``, ``year_of_birth`` (or ``yearOfBirth``) and ``country``.
+        unchanged), ``type``, ``year_of_birth`` (or ``yearOfBirth``), ``country``, ``email``,
+        ``phone``, ``website`` and ``crypto_address`` (or ``cryptoAddress``).
 
         Returns one combined response: ``results`` in the same order as ``items`` (each with
         ``index``, ``reference``, ``status`` and ``matches``) and a ``summary`` with the counts.
@@ -179,6 +194,10 @@ def _item(item: Mapping[str, Any]) -> Dict[str, Any]:
         type=item.get("type"),
         yearOfBirth=item.get("year_of_birth", item.get("yearOfBirth")),
         country=item.get("country"),
+        email=item.get("email"),
+        phone=item.get("phone"),
+        website=item.get("website"),
+        cryptoAddress=item.get("crypto_address", item.get("cryptoAddress")),
     )
 
 

@@ -68,6 +68,7 @@ Then call `screen_name` with `{"name": "Aymen Zawahri", "yearOfBirth": 1990}`. I
 |---|---|
 | `screen_name` | Screen one name; returns potential matches with scores and explanations |
 | `screen_names` | Screen up to 100 names; returns the best match for each |
+| `screen_identifier` | Check an email, phone number, website or crypto address against the ones OFAC lists |
 | `get_sanctions_entry` | Full published record of an SDN entry |
 | `compare_names` | How two names score against each other, part by part |
 | `get_list_info` | Which copy of the list is loaded and when it was downloaded |
