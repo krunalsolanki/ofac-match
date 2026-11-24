@@ -123,6 +123,8 @@ OFAC updates the list often. Reload it at least daily, and screen against the cu
 
 `OfacMatch.Mcp` lets Claude, GitHub Copilot and other [MCP](https://modelcontextprotocol.io/) clients screen names, look up SDN entries and explain scores. It runs locally and needs no API key.
 
+**Try it first, without installing:** open [OfacMatch on Glama](https://glama.ai/mcp/servers/krunalsolanki/ofac-match) and click **Try in Browser**. Glama runs the server and lets you call the tools from a chat. Use test names only, since anything you type goes to Glama.
+
 **Claude Desktop:** download the extension for your computer from the [latest release](https://github.com/krunalsolanki/ofac-match/releases/latest) (`ofac-match-windows.mcpb` or `ofac-match-mac-*.mcpb`) and double-click it. No .NET or config file needed.
 
 **Claude Code plugin** (adds the server plus a skill for reporting results responsibly; needs the .NET 10 SDK):
