@@ -2,6 +2,12 @@
 
 All notable changes are listed here. The project follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- MCP server: the Claude Desktop extension failed with "Folder not found: ${user_config.data_dir}" when the optional offline-list folder was left empty. An unfilled setting now counts as not set, so the list is downloaded from OFAC.
+
 ## [2.1.0] - 2026-11-24
 
 ### Added

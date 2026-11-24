@@ -35,7 +35,15 @@ public sealed class ListSettings
     private static string DefaultCacheDirectory() =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OfacMatch", "sdn");
 
-    private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
+    // Empty, or a placeholder the client left unfilled because the optional setting was blank
+    // (Claude Desktop passes "${user_config.data_dir}" through as-is; the MCP Registry form uses "{data_dir}").
+    private static string? NullIfEmpty(string? value)
+    {
+        var trimmed = value?.Trim();
+        if (string.IsNullOrEmpty(trimmed)) return null;
+        var unfilled = (trimmed.StartsWith("${", StringComparison.Ordinal) || trimmed.StartsWith('{')) && trimmed.EndsWith('}');
+        return unfilled ? null : value;
+    }
 }
 
 /// <summary>Loads the SDN list on first use, keeps it in memory, and reloads it when it gets stale.</summary>
