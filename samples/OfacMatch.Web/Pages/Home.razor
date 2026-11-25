@@ -4,6 +4,7 @@
 @inject SanctionsData Data
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@implements IDisposable
 
 <PageTitle>OfacMatch – try OFAC name screening</PageTitle>
 
@@ -15,8 +16,8 @@
 
 <main>
     <nav class="modes" aria-label="Screening mode">
-        <button type="button" class="@(_batch ? "" : "active")" aria-pressed="@(!_batch)" @onclick="() => _batch = false">One name</button>
-        <button type="button" class="@(_batch ? "active" : "")" aria-pressed="@_batch" @onclick="() => { _batch = true; _runComparison = false; }">A list of names (CSV)</button>
+        <button type="button" class="@(_batch ? "" : "active")" aria-pressed="@(!_batch)" @onclick="ShowOneName">One name</button>
+        <button type="button" class="@(_batch ? "active" : "")" aria-pressed="@_batch" @onclick="ShowList">A list of names (CSV)</button>
     </nav>
 
     @if (!_batch)
@@ -38,7 +39,7 @@
 
     @if (_batch)
     {
-        <BatchPanel RunComparison="_runComparison" />
+        <BatchPanel @key="_runComparison" RunComparison="_runComparison" />
     }
     else
     {
@@ -230,25 +231,39 @@
     private bool _batch;
     private bool _runComparison;
 
-    private void StartComparison()
-    {
-        _runComparison = true;
-        _batch = true;
-    }
+    // Each mode has its own address (?mode=list, ?test=compare), so the browser's Back and
+    // Forward buttons move between them and each can be shared as a link.
+    private void ShowOneName() => Navigation.NavigateTo("./");
+
+    private void ShowList() => Navigation.NavigateTo("./?mode=list");
+
+    private void StartComparison() => Navigation.NavigateTo("./?test=compare");
 
     private async Task DownloadComparisonAsync() =>
         await JS.InvokeVoidAsync("ofacMatchDownload", ComparisonTest.FileName, ComparisonTest.Csv);
 
-    // ?test=compare opens the list mode and runs the 25-name comparison test straight away.
+    // ?test=compare opens the list mode and runs the 25-name comparison test straight away;
+    // ?mode=list opens the list mode.
     protected override void OnInitialized()
     {
-        var query = new Uri(Navigation.Uri).Query;
-        if (query.Contains("test=compare", StringComparison.OrdinalIgnoreCase))
-        {
-            _batch = true;
-            _runComparison = true;
-        }
+        ApplyAddress(Navigation.Uri);
+        Navigation.LocationChanged += OnLocationChanged;
     }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        ApplyAddress(e.Location);
+        StateHasChanged();
+    }
+
+    private void ApplyAddress(string address)
+    {
+        var query = new Uri(address).Query;
+        _runComparison = query.Contains("test=compare", StringComparison.OrdinalIgnoreCase);
+        _batch = _runComparison || query.Contains("mode=list", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
 
     private string _name = "";
     private int? _yearOfBirth;

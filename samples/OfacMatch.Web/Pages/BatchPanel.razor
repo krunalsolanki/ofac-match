@@ -83,6 +83,9 @@
     {
         <section class="comparison" aria-label="Comparison test score">
             <h2>Comparison test: how OfacMatch scored</h2>
+            <p class="meta">
+                <a href="./">← Screen one name</a> · <a href="./?mode=list">Screen your own list (CSV)</a>
+            </p>
             <div class="summary">
                 <div class="ok"><strong>@_score.NamesFound of @_score.NamesTotal</strong> listed names found</div>
                 <div class="ok"><strong>@_score.IdentifiersFound of @_score.IdentifiersTotal</strong> renamed parties found by a listed detail</div>
@@ -95,6 +98,7 @@
             <p class="examples">
                 <button type="button" class="primary" @onclick="DownloadComparisonAsync">Download the test file (CSV)</button>
                 <a href="@ComparisonTest.GuideUrl" target="_blank" rel="noopener">Answer key and how to send your numbers</a>
+                <a href="./">Try one name yourself</a>
             </p>
             <details>
                 <summary>Every case, with the expected answer</summary>
