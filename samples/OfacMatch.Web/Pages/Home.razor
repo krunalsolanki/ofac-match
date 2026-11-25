@@ -15,6 +15,14 @@
 </header>
 
 <main>
+    @if (_runComparison)
+    {
+        <div class="test-bar" role="note">
+            <p><strong>You are viewing the 25-name comparison test.</strong> To screen your own names, go to the main page.</p>
+            <button type="button" class="primary" @onclick="ShowOneName">← Main page</button>
+        </div>
+    }
+
     <nav class="modes" aria-label="Screening mode">
         <button type="button" class="@(_batch ? "" : "active")" aria-pressed="@(!_batch)" @onclick="ShowOneName">One name</button>
         <button type="button" class="@(_batch ? "active" : "")" aria-pressed="@_batch" @onclick="ShowList">A list of names (CSV)</button>

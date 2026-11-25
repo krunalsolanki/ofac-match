@@ -337,3 +337,16 @@ label.inline { display: inline-flex; gap: 6px; align-items: center; font-size: 0
 }
 .compare-callout p { margin: 0 0 8px; }
 .compare-callout p:last-child { margin-bottom: 0; }
+.test-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin: 0 0 16px;
+}
+.test-bar p { margin: 0; }
